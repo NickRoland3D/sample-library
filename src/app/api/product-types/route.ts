@@ -61,3 +61,48 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Product type ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if any samples are using this product type
+    const { data: existingSamples, error: checkError } = await supabase
+      .from('samples')
+      .select('id')
+      .eq('product_type', id)
+      .limit(1)
+
+    if (checkError) throw checkError
+
+    if (existingSamples && existingSamples.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete product type that is in use by samples' },
+        { status: 409 }
+      )
+    }
+
+    const { error } = await supabase
+      .from('product_types')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting product type:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete product type' },
+      { status: 500 }
+    )
+  }
+}

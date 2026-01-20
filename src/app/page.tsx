@@ -8,6 +8,7 @@ import FilterBar from '@/components/FilterBar'
 import SampleCard from '@/components/SampleCard'
 import SampleModal from '@/components/SampleModal'
 import AddSampleModal from '@/components/AddSampleModal'
+import ManageProductTypesModal from '@/components/ManageProductTypesModal'
 import EmptyState from '@/components/EmptyState'
 import { Sample, ProductType, Profile } from '@/types/database'
 import { Loader2 } from 'lucide-react'
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [selectedSample, setSelectedSample] = useState<Sample | null>(null)
   const [showSampleModal, setShowSampleModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showManageTypesModal, setShowManageTypesModal] = useState(false)
 
   // Check auth
   useEffect(() => {
@@ -146,6 +148,18 @@ export default function HomePage() {
     }
   }
 
+  const handleProductTypesChange = async () => {
+    // Reload product types
+    const { data: typesData } = await supabase
+      .from('product_types')
+      .select('*')
+      .order('name')
+
+    if (typesData) {
+      setProductTypes(typesData)
+    }
+  }
+
   // Loading state
   if (authLoading || dataLoading) {
     return (
@@ -164,6 +178,7 @@ export default function HomePage() {
         user={user}
         onAddNew={() => setShowAddModal(true)}
         onSignOut={handleSignOut}
+        onManageTypes={() => setShowManageTypesModal(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -215,6 +230,13 @@ export default function HomePage() {
         onClose={() => setShowAddModal(false)}
         onSuccess={handleAddSuccess}
         productTypes={productTypes}
+      />
+
+      <ManageProductTypesModal
+        isOpen={showManageTypesModal}
+        onClose={() => setShowManageTypesModal(false)}
+        productTypes={productTypes}
+        onProductTypesChange={handleProductTypesChange}
       />
     </div>
   )
