@@ -67,8 +67,8 @@ export default function HomePage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
+      if (_event === 'SIGNED_OUT') {
         router.push('/login')
       }
     })
