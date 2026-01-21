@@ -76,10 +76,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 mb-4">
-            <span className="text-white font-bold text-2xl">S</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Sample Library</h1>
+          <img
+            src="/roland-logo.svg"
+            alt="Roland DG"
+            className="h-10 mx-auto mb-4"
+          />
+          <h1 className="text-2xl font-bold text-gray-900">Rotary Sample Gallery</h1>
           <p className="text-gray-500 mt-1">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>
@@ -166,7 +168,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-400">
-          Design file repository for application specialists
+          Roland DG Corporation
         </p>
       </div>
     </div>
