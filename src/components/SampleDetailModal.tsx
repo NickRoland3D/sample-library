@@ -20,6 +20,69 @@ import Input from '@/components/ui/Input'
 import { Sample, ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 
+// Compress and resize image to reduce file size
+const compressImage = (file: File, maxSize = 1200, quality = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    // If file is already small enough (under 1MB), just return it
+    if (file.size < 1024 * 1024) {
+      resolve(file)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        // Scale down if larger than maxSize
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height / width) * maxSize
+            width = maxSize
+          } else {
+            width = (width / height) * maxSize
+            height = maxSize
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'))
+          return
+        }
+
+        ctx.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to compress image'))
+              return
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            })
+            resolve(compressedFile)
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
 interface SampleDetailModalProps {
   sample: Sample | null
   isOpen: boolean
@@ -110,13 +173,16 @@ export default function SampleDetailModal({
 
       // Use FormData if we have a new image, otherwise JSON
       if (newImage) {
+        // Compress image before upload
+        const compressedImage = await compressImage(newImage)
+
         const formData = new FormData()
         formData.append('name', editName.trim())
         formData.append('product_type', editProductType)
         formData.append('notes', editNotes.trim() || '')
         if (editPrintTime) formData.append('print_time_minutes', editPrintTime)
         if (editInkUsage) formData.append('ink_usage_ml', editInkUsage)
-        formData.append('samplePhoto', newImage)
+        formData.append('samplePhoto', compressedImage)
 
         const response = await fetch(`/api/samples/${sample.id}`, {
           method: 'PATCH',
