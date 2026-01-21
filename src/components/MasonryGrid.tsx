@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Upload, ImagePlus } from 'lucide-react'
+import { Upload, ImagePlus, Grid, LayoutGrid } from 'lucide-react'
 import { Sample, ProductType } from '@/types/database'
 
 interface MasonryGridProps {
@@ -11,6 +11,13 @@ interface MasonryGridProps {
   onDropImage: (file: File) => void
 }
 
+// Grid size configurations
+const GRID_SIZES = {
+  small: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
+  medium: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+  large: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3',
+}
+
 export default function MasonryGrid({
   samples,
   productTypes,
@@ -18,6 +25,7 @@ export default function MasonryGrid({
   onDropImage,
 }: MasonryGridProps) {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [gridSize, setGridSize] = useState<'small' | 'medium' | 'large'>('medium')
 
   const getProductTypeName = (typeId: string) => {
     const type = productTypes.find(pt => pt.id === typeId)
@@ -103,27 +111,44 @@ export default function MasonryGrid({
         </div>
       )}
 
+      {/* Size Slider - Subtle control */}
+      <div className="flex items-center justify-end mb-4 gap-2">
+        <Grid className="w-3.5 h-3.5 text-gray-400" />
+        <input
+          type="range"
+          min="0"
+          max="2"
+          value={gridSize === 'small' ? 0 : gridSize === 'medium' ? 1 : 2}
+          onChange={(e) => {
+            const val = parseInt(e.target.value)
+            setGridSize(val === 0 ? 'small' : val === 1 ? 'medium' : 'large')
+          }}
+          className="w-20 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-gray-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:bg-gray-500 [&::-webkit-slider-thumb]:transition-colors"
+        />
+        <LayoutGrid className="w-3.5 h-3.5 text-gray-400" />
+      </div>
+
       {/* Uniform Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className={`grid ${GRID_SIZES[gridSize]} gap-4`}>
         {samples.map((sample) => (
           <div
             key={sample.id}
             className="group cursor-pointer"
             onClick={() => onSampleClick(sample)}
           >
-            <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div className="relative bg-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               {/* Image with fixed aspect ratio */}
-              <div className="relative aspect-[4/5]">
+              <div className="relative aspect-[4/5] flex items-center justify-center">
                 <img
                   src={sample.thumbnail_url}
                   alt={sample.name}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                   loading="lazy"
                 />
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                  {/* Info overlay - only visible on hover */}
+                {/* Info overlay - only visible on hover */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   {/* Product type badge */}
                   <div className="absolute top-3 left-3">

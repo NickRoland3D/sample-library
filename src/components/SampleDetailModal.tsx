@@ -11,6 +11,8 @@ import {
   ExternalLink,
   Loader2,
   Save,
+  Upload,
+  X,
 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -45,6 +47,10 @@ export default function SampleDetailModal({
   const [editName, setEditName] = useState('')
   const [editProductType, setEditProductType] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [editPrintTime, setEditPrintTime] = useState('')
+  const [editInkUsage, setEditInkUsage] = useState('')
+  const [newImage, setNewImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   // Reset form when sample changes
   useEffect(() => {
@@ -52,10 +58,31 @@ export default function SampleDetailModal({
       setEditName(sample.name)
       setEditProductType(sample.product_type)
       setEditNotes(sample.notes || '')
+      setEditPrintTime(sample.print_time_minutes?.toString() || '')
+      setEditInkUsage(sample.ink_usage_ml?.toString() || '')
+      setNewImage(null)
+      setImagePreview(null)
       setIsEditing(false)
       setError(null)
     }
   }, [sample])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setNewImage(file)
+      const url = URL.createObjectURL(file)
+      setImagePreview(url)
+    }
+  }
+
+  const handleRemoveNewImage = () => {
+    setNewImage(null)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview(null)
+    }
+  }
 
   if (!sample) return null
 
@@ -81,25 +108,53 @@ export default function SampleDetailModal({
 
       if (!session) throw new Error('Not authenticated')
 
-      const response = await fetch(`/api/samples/${sample.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          name: editName.trim(),
-          product_type: editProductType,
-          notes: editNotes.trim() || null,
-        }),
-      })
+      // Use FormData if we have a new image, otherwise JSON
+      if (newImage) {
+        const formData = new FormData()
+        formData.append('name', editName.trim())
+        formData.append('product_type', editProductType)
+        formData.append('notes', editNotes.trim() || '')
+        if (editPrintTime) formData.append('print_time_minutes', editPrintTime)
+        if (editInkUsage) formData.append('ink_usage_ml', editInkUsage)
+        formData.append('samplePhoto', newImage)
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to update sample')
+        const response = await fetch(`/api/samples/${sample.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to update sample')
+        }
+      } else {
+        const response = await fetch(`/api/samples/${sample.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            name: editName.trim(),
+            product_type: editProductType,
+            notes: editNotes.trim() || null,
+            print_time_minutes: editPrintTime ? parseInt(editPrintTime) : null,
+            ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
+          }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to update sample')
+        }
       }
 
       setIsEditing(false)
+      setNewImage(null)
+      setImagePreview(null)
       onSampleUpdate()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update sample')
@@ -160,11 +215,50 @@ export default function SampleDetailModal({
       <div className="flex flex-col md:flex-row max-h-[85vh]">
         {/* Image Section */}
         <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6 md:p-8">
-          <img
-            src={sample.thumbnail_url}
-            alt={sample.name}
-            className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
-          />
+          {isEditing ? (
+            <div className="relative w-full h-full flex items-center justify-center">
+              {imagePreview ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="New preview"
+                    className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
+                  />
+                  <button
+                    onClick={handleRemoveNewImage}
+                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-full">
+                  <img
+                    src={sample.thumbnail_url}
+                    alt={sample.name}
+                    className="max-w-full max-h-[350px] md:max-h-[450px] object-contain rounded-2xl shadow-lg mx-auto opacity-75"
+                  />
+                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer bg-black/40 rounded-2xl hover:bg-black/50 transition-colors">
+                    <Upload className="w-10 h-10 text-white mb-2" />
+                    <span className="text-white font-medium">Change Image</span>
+                    <span className="text-white/70 text-sm mt-1">Click to upload new photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          ) : (
+            <img
+              src={sample.thumbnail_url}
+              alt={sample.name}
+              className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
+            />
+          )}
         </div>
 
         {/* Info Section */}
@@ -209,6 +303,35 @@ export default function SampleDetailModal({
                 </select>
               </div>
 
+              {/* Print Time & Ink Usage */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Print Time (min)
+                  </label>
+                  <input
+                    type="number"
+                    value={editPrintTime}
+                    onChange={(e) => setEditPrintTime(e.target.value)}
+                    placeholder="45"
+                    className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ink Usage (ml)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editInkUsage}
+                    onChange={(e) => setEditInkUsage(e.target.value)}
+                    placeholder="12.5"
+                    className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Notes
@@ -243,6 +366,9 @@ export default function SampleDetailModal({
                     setEditName(sample.name)
                     setEditProductType(sample.product_type)
                     setEditNotes(sample.notes || '')
+                    setEditPrintTime(sample.print_time_minutes?.toString() || '')
+                    setEditInkUsage(sample.ink_usage_ml?.toString() || '')
+                    handleRemoveNewImage()
                   }}
                   className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"
                 >

@@ -62,16 +62,93 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse body
-    const body = await request.json()
-    const { name, product_type, notes } = body
+    // Check content type to determine if it's FormData or JSON
+    const contentType = request.headers.get('content-type') || ''
 
-    // Build update object with only core fields that definitely exist
+    let name: string | undefined
+    let product_type: string | undefined
+    let notes: string | undefined
+    let print_time_minutes: number | null | undefined
+    let ink_usage_ml: number | null | undefined
+    let samplePhoto: File | null = null
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData (with image)
+      const formData = await request.formData()
+      name = formData.get('name') as string | undefined
+      product_type = formData.get('product_type') as string | undefined
+      notes = formData.get('notes') as string | undefined
+
+      const printTimeStr = formData.get('print_time_minutes') as string | null
+      const inkUsageStr = formData.get('ink_usage_ml') as string | null
+
+      print_time_minutes = printTimeStr ? parseInt(printTimeStr) : null
+      ink_usage_ml = inkUsageStr ? parseFloat(inkUsageStr) : null
+
+      samplePhoto = formData.get('samplePhoto') as File | null
+    } else {
+      // Handle JSON
+      const body = await request.json()
+      name = body.name
+      product_type = body.product_type
+      notes = body.notes
+      print_time_minutes = body.print_time_minutes
+      ink_usage_ml = body.ink_usage_ml
+    }
+
+    // Build update object
     const updateData: Record<string, unknown> = {}
 
     if (name !== undefined) updateData.name = name
     if (product_type !== undefined) updateData.product_type = product_type
     if (notes !== undefined) updateData.notes = notes
+    if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
+    if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
+
+    // Handle image upload if provided
+    if (samplePhoto && samplePhoto.size > 0) {
+      // Get the current sample to delete old image
+      const { data: currentSample } = await supabase
+        .from('samples')
+        .select('thumbnail_url')
+        .eq('id', id)
+        .single()
+
+      // Delete old thumbnail if it exists
+      if (currentSample?.thumbnail_url) {
+        const url = new URL(currentSample.thumbnail_url)
+        const pathParts = url.pathname.split('/thumbnails/')
+        if (pathParts.length > 1) {
+          const storagePath = pathParts[1]
+          await supabase.storage.from('thumbnails').remove([storagePath])
+        }
+      }
+
+      // Upload new image
+      const fileExt = samplePhoto.name.split('.').pop() || 'jpg'
+      const fileName = `${id}-${Date.now()}.${fileExt}`
+      const arrayBuffer = await samplePhoto.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      const { error: uploadError } = await supabase.storage
+        .from('thumbnails')
+        .upload(fileName, buffer, {
+          contentType: samplePhoto.type,
+          upsert: true,
+        })
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('thumbnails')
+        .getPublicUrl(fileName)
+
+      updateData.thumbnail_url = publicUrl
+    }
 
     // Only update if there's something to update
     if (Object.keys(updateData).length === 0) {

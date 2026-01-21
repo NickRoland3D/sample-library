@@ -109,6 +109,8 @@ export default function AddSampleModal({
   const [onedriveFolderUrl, setOnedriveFolderUrl] = useState('')
   const [samplePhoto, setSamplePhoto] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [printTime, setPrintTime] = useState('')
+  const [inkUsage, setInkUsage] = useState('')
 
 
   // Handle prefilled image from drag-and-drop
@@ -132,6 +134,8 @@ export default function AddSampleModal({
         setOnedriveFolderUrl('')
         setSamplePhoto(null)
         setImagePreview(null)
+        setPrintTime('')
+        setInkUsage('')
         setError(null)
         setUploadProgress({ step: '', progress: 0 })
       }, 300)
@@ -196,6 +200,8 @@ export default function AddSampleModal({
       formData.append('notes', notes.trim())
       formData.append('onedriveFolderUrl', onedriveFolderUrl.trim())
       formData.append('samplePhoto', compressedPhoto)
+      if (printTime) formData.append('printTimeMinutes', printTime)
+      if (inkUsage) formData.append('inkUsageMl', inkUsage)
 
       setUploadProgress({ step: 'Uploading sample photo...', progress: 50 })
 
@@ -328,6 +334,35 @@ export default function AddSampleModal({
                     onChange={(e) => setOnedriveFolderUrl(e.target.value)}
                     className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="https://onedrive.live.com/..."
+                  />
+                </div>
+              </div>
+
+              {/* Print Time & Ink Usage */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Print Time (min)
+                  </label>
+                  <input
+                    type="number"
+                    value={printTime}
+                    onChange={(e) => setPrintTime(e.target.value)}
+                    placeholder="45"
+                    className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ink Usage (ml)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={inkUsage}
+                    onChange={(e) => setInkUsage(e.target.value)}
+                    placeholder="12.5"
+                    className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
               </div>
