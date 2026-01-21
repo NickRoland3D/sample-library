@@ -93,7 +93,7 @@ export default function HomePage() {
         .order('created_at', { ascending: false })
 
       if (samplesData) {
-        setSamples(samplesData)
+        setSamples(samplesData as Sample[])
       }
 
       // Load product types
@@ -103,7 +103,7 @@ export default function HomePage() {
         .order('name')
 
       if (typesData) {
-        setProductTypes(typesData)
+        setProductTypes(typesData as ProductType[])
       }
 
       setDataLoading(false)
@@ -165,7 +165,7 @@ export default function HomePage() {
       .order('created_at', { ascending: false })
 
     if (samplesData) {
-      setSamples(samplesData)
+      setSamples(samplesData as Sample[])
     }
   }
 
@@ -177,10 +177,11 @@ export default function HomePage() {
       .order('created_at', { ascending: false })
 
     if (samplesData) {
-      setSamples(samplesData)
+      const typedSamples = samplesData as Sample[]
+      setSamples(typedSamples)
       // Update selected sample with fresh data
       if (selectedSample) {
-        const updated = samplesData.find((s) => s.id === selectedSample.id)
+        const updated = typedSamples.find((s) => s.id === selectedSample.id)
         if (updated) setSelectedSample(updated)
       }
     }
@@ -199,7 +200,7 @@ export default function HomePage() {
       .order('name')
 
     if (typesData) {
-      setProductTypes(typesData)
+      setProductTypes(typesData as ProductType[])
     }
   }
 
