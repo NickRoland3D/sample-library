@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Wine,
   Beer,
@@ -69,12 +69,27 @@ interface IconPickerProps {
 
 export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [openUpward, setOpenUpward] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const SelectedIconComponent = getIconComponent(selectedIcon)
+
+  // Check if dropdown should open upward based on available space
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - buttonRect.bottom
+      const dropdownHeight = 280 // Approximate height of dropdown
+
+      setOpenUpward(spaceBelow < dropdownHeight)
+    }
+  }, [isOpen])
 
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
@@ -97,8 +112,13 @@ export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerPro
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Dropdown */}
-          <div className="absolute left-0 top-full mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64">
+          {/* Dropdown - positioned upward or downward based on space */}
+          <div
+            ref={dropdownRef}
+            className={`absolute left-0 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64 ${
+              openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+            }`}
+          >
             <div className="text-xs font-medium text-gray-500 mb-2 px-1">Choose an icon</div>
 
             {Object.entries(ICON_GROUPS).map(([groupName, icons]) => (
