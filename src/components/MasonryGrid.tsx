@@ -103,43 +103,46 @@ export default function MasonryGrid({
         </div>
       )}
 
-      {/* Masonry Grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+      {/* Uniform Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {samples.map((sample) => (
           <div
             key={sample.id}
-            className="break-inside-avoid group cursor-pointer"
+            className="group cursor-pointer"
             onClick={() => onSampleClick(sample)}
           >
             <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-              {/* Image */}
-              <div className="relative">
+              {/* Image with fixed aspect ratio */}
+              <div className="relative aspect-[4/5]">
                 <img
                   src={sample.thumbnail_url}
                   alt={sample.name}
-                  className="w-full h-auto object-cover"
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                {/* Product type badge */}
-                <div className="absolute top-3 left-3">
-                  <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full shadow-sm">
-                    {getProductTypeName(sample.product_type)}
-                  </span>
-                </div>
+                  {/* Info overlay - only visible on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* Product type badge */}
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full shadow-sm">
+                      {getProductTypeName(sample.product_type)}
+                    </span>
+                  </div>
 
-                {/* Title overlay - only visible on hover */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <h3 className="font-medium text-white truncate">
-                    {sample.name}
-                  </h3>
-                  {sample.notes && (
-                    <p className="text-xs text-white/80 mt-1 line-clamp-2">
-                      {sample.notes}
-                    </p>
-                  )}
+                  {/* Title at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <h3 className="font-medium text-white truncate">
+                      {sample.name}
+                    </h3>
+                    {sample.notes && (
+                      <p className="text-xs text-white/80 mt-1 line-clamp-2">
+                        {sample.notes}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
