@@ -21,17 +21,8 @@ export default function TopBar({
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-      {/* Logo */}
-      <div className="flex items-center">
-        <img
-          src="/roland-logo.svg"
-          alt="Roland"
-          className="h-9 w-auto"
-        />
-      </div>
-
       {/* Search */}
-      <div className="flex-1 max-w-xl mx-8">
+      <div className="flex-1 max-w-xl">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
