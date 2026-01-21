@@ -8,7 +8,6 @@ import {
   Trash2,
   Clock,
   Droplets,
-  Gauge,
   ExternalLink,
   Loader2,
   Save,
@@ -16,7 +15,7 @@ import {
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { Sample, ProductType, DifficultyLevel } from '@/types/database'
+import { Sample, ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 
 interface SampleDetailModalProps {
@@ -48,7 +47,6 @@ export default function SampleDetailModal({
   const [editNotes, setEditNotes] = useState('')
   const [editPrintTime, setEditPrintTime] = useState('')
   const [editInkUsage, setEditInkUsage] = useState('')
-  const [editDifficulty, setEditDifficulty] = useState<DifficultyLevel | ''>('')
 
   // Reset form when sample changes
   useEffect(() => {
@@ -58,7 +56,6 @@ export default function SampleDetailModal({
       setEditNotes(sample.notes || '')
       setEditPrintTime(sample.print_time_minutes?.toString() || '')
       setEditInkUsage(sample.ink_usage_ml?.toString() || '')
-      setEditDifficulty(sample.difficulty || '')
       setIsEditing(false)
       setError(null)
     }
@@ -100,7 +97,6 @@ export default function SampleDetailModal({
           notes: editNotes.trim() || null,
           print_time_minutes: editPrintTime ? parseInt(editPrintTime) : null,
           ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
-          difficulty: editDifficulty || null,
         }),
       })
 
@@ -163,7 +159,7 @@ export default function SampleDetailModal({
     return productTypes.find(pt => pt.id === id)?.name || id
   }
 
-  const hasSpecs = sample.print_time_minutes || sample.ink_usage_ml || sample.difficulty
+  const hasSpecs = sample.print_time_minutes || sample.ink_usage_ml
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="" size="xl">
@@ -236,7 +232,7 @@ export default function SampleDetailModal({
                 <h4 className="text-sm font-medium text-gray-700 mb-4">
                   Optional Specifications
                 </h4>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-2">
                       Print Time (min)
@@ -261,21 +257,6 @@ export default function SampleDetailModal({
                       placeholder="12.5"
                       className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-2">
-                      Difficulty
-                    </label>
-                    <select
-                      value={editDifficulty}
-                      onChange={(e) => setEditDifficulty(e.target.value as DifficultyLevel | '')}
-                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm appearance-none cursor-pointer"
-                    >
-                      <option value="">--</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
                   </div>
                 </div>
               </div>
@@ -303,7 +284,6 @@ export default function SampleDetailModal({
                     setEditNotes(sample.notes || '')
                     setEditPrintTime(sample.print_time_minutes?.toString() || '')
                     setEditInkUsage(sample.ink_usage_ml?.toString() || '')
-                    setEditDifficulty(sample.difficulty || '')
                   }}
                   className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
                 >
@@ -368,7 +348,7 @@ export default function SampleDetailModal({
               {/* Specs */}
               {hasSpecs && (
                 <div className="pt-5 border-t border-gray-100">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {sample.print_time_minutes && (
                       <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
                         <Clock className="w-5 h-5 text-primary-500 mx-auto mb-2" />
@@ -385,15 +365,6 @@ export default function SampleDetailModal({
                           {sample.ink_usage_ml} ml
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">Ink Usage</p>
-                      </div>
-                    )}
-                    {sample.difficulty && (
-                      <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
-                        <Gauge className="w-5 h-5 text-primary-500 mx-auto mb-2" />
-                        <p className="text-sm font-bold text-gray-900">
-                          {sample.difficulty}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Difficulty</p>
                       </div>
                     )}
                   </div>
