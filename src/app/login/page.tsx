@@ -15,22 +15,6 @@ function isAllowedEmail(email: string): boolean {
   return domain ? ALLOWED_DOMAINS.includes(domain) : false
 }
 
-// Fallback sample images (bottles, containers, cosmetics)
-const SAMPLE_IMAGES = [
-  'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1586153077373-a614b5e6f7b4?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1570194065650-d99fb4b38b7f?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1619994403073-2cec844b8e63?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1600612253971-422e7f7faeb6?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1612817159949-195b6eb9e31a?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=400&h=400&fit=crop',
-]
-
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -42,24 +26,22 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [galleryImages, setGalleryImages] = useState<string[]>(SAMPLE_IMAGES)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
 
-  // Fetch actual gallery images from Supabase
+  // Fetch gallery images from Supabase - dynamically updates as new samples are added
   useEffect(() => {
     async function fetchSampleImages() {
       const { data: samples } = await supabase
         .from('samples')
         .select('image_url')
         .not('image_url', 'is', null)
-        .limit(24)
+        .limit(48)
 
       if (samples && samples.length > 0) {
         const images = samples
           .map((s: { image_url: string | null }) => s.image_url)
           .filter((url): url is string => url !== null)
-        if (images.length > 0) {
-          setGalleryImages(images)
-        }
+        setGalleryImages(images)
       }
     }
     fetchSampleImages()
@@ -122,40 +104,42 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Scrolling image columns */}
-        <div className="absolute inset-0 flex justify-center gap-3 px-4">
-          {[0, 1, 2, 3, 4, 5].map((colIndex) => (
-            <div
-              key={colIndex}
-              className={`flex-shrink-0 w-48 flex flex-col gap-3 ${
-                colIndex % 2 === 0 ? 'animate-scroll-up' : 'animate-scroll-down'
-              }`}
-              style={{
-                animationDuration: `${80 + colIndex * 15}s`,
-              }}
-            >
-              {getColumnImages(colIndex).map((img, imgIndex) => (
-                <div
-                  key={`${colIndex}-${imgIndex}`}
-                  className="w-48 h-48 rounded-xl overflow-hidden flex-shrink-0"
-                >
-                  <img
-                    src={img}
-                    alt=""
-                    className="w-full h-full object-cover opacity-30"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
+      {/* Animated Background - only shows when gallery has images */}
+      {galleryImages.length > 0 && (
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Scrolling image columns */}
+          <div className="absolute inset-0 flex justify-center gap-3 px-4">
+            {[0, 1, 2, 3, 4, 5].map((colIndex) => (
+              <div
+                key={colIndex}
+                className={`flex-shrink-0 w-48 flex flex-col gap-3 ${
+                  colIndex % 2 === 0 ? 'animate-scroll-up' : 'animate-scroll-down'
+                }`}
+                style={{
+                  animationDuration: `${80 + colIndex * 15}s`,
+                }}
+              >
+                {getColumnImages(colIndex).map((img, imgIndex) => (
+                  <div
+                    key={`${colIndex}-${imgIndex}`}
+                    className="w-48 h-48 rounded-xl overflow-hidden flex-shrink-0"
+                  >
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-cover opacity-30"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/60 via-gray-900/40 to-gray-900/60" />
-      </div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/60 via-gray-900/40 to-gray-900/60" />
+        </div>
+      )}
 
       {/* Login Card */}
       <div className="w-full max-w-md relative z-20">
