@@ -15,20 +15,20 @@ function isAllowedEmail(email: string): boolean {
   return domain ? ALLOWED_DOMAINS.includes(domain) : false
 }
 
-// Sample images for the animated background
+// Fallback sample images (bottles, containers, cosmetics)
 const SAMPLE_IMAGES = [
-  'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400',
-  'https://images.unsplash.com/photo-1586153077373-a614b5e6f7b4?w=400',
-  'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400',
-  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400',
-  'https://images.unsplash.com/photo-1570194065650-d99fb4b38b7f?w=400',
-  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400',
-  'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400',
-  'https://images.unsplash.com/photo-1619994403073-2cec844b8e63?w=400',
-  'https://images.unsplash.com/photo-1600612253971-422e7f7faeb6?w=400',
-  'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400',
-  'https://images.unsplash.com/photo-1612817159949-195b6eb9e31a?w=400',
-  'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=400',
+  'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1586153077373-a614b5e6f7b4?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1570194065650-d99fb4b38b7f?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1619994403073-2cec844b8e63?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1600612253971-422e7f7faeb6?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1612817159949-195b6eb9e31a?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=400&h=400&fit=crop',
 ]
 
 export default function LoginPage() {
@@ -42,7 +42,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryImages, setGalleryImages] = useState<string[]>(SAMPLE_IMAGES)
 
   // Fetch actual gallery images from Supabase
   useEffect(() => {
@@ -57,10 +57,9 @@ export default function LoginPage() {
         const images = samples
           .map((s: { image_url: string | null }) => s.image_url)
           .filter((url): url is string => url !== null)
-        setGalleryImages(images)
-      } else {
-        // Fallback to placeholder images
-        setGalleryImages(SAMPLE_IMAGES)
+        if (images.length > 0) {
+          setGalleryImages(images)
+        }
       }
     }
     fetchSampleImages()
@@ -110,37 +109,42 @@ export default function LoginPage() {
     }
   }
 
-  // Create duplicated images for seamless loop
-  const displayImages = [...galleryImages, ...galleryImages]
+  // Create columns with offset images for visual variety
+  const getColumnImages = (colIndex: number) => {
+    const offset = colIndex * 3
+    const images = []
+    for (let i = 0; i < 8; i++) {
+      images.push(galleryImages[(offset + i) % galleryImages.length])
+    }
+    // Duplicate for seamless loop
+    return [...images, ...images]
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 overflow-hidden relative">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-gray-900/90 to-gray-900/95 z-10" />
-
-        {/* Scrolling image grid */}
-        <div className="absolute inset-0 flex gap-4 animate-scroll-slow">
-          {[0, 1, 2, 3].map((colIndex) => (
+        {/* Scrolling image columns */}
+        <div className="absolute inset-0 flex justify-center gap-3 px-4">
+          {[0, 1, 2, 3, 4, 5].map((colIndex) => (
             <div
               key={colIndex}
-              className={`flex flex-col gap-4 ${colIndex % 2 === 0 ? 'animate-scroll-up' : 'animate-scroll-down'}`}
+              className={`flex-shrink-0 w-48 flex flex-col gap-3 ${
+                colIndex % 2 === 0 ? 'animate-scroll-up' : 'animate-scroll-down'
+              }`}
               style={{
-                animationDuration: `${60 + colIndex * 10}s`,
-                width: '25%',
-                minWidth: '200px'
+                animationDuration: `${80 + colIndex * 15}s`,
               }}
             >
-              {displayImages.map((img, imgIndex) => (
+              {getColumnImages(colIndex).map((img, imgIndex) => (
                 <div
                   key={`${colIndex}-${imgIndex}`}
-                  className="aspect-square rounded-2xl overflow-hidden opacity-40"
+                  className="w-48 h-48 rounded-xl overflow-hidden flex-shrink-0"
                 >
                   <img
                     src={img}
                     alt=""
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover opacity-30"
                     loading="lazy"
                   />
                 </div>
@@ -148,19 +152,20 @@ export default function LoginPage() {
             </div>
           ))}
         </div>
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/60 via-gray-900/40 to-gray-900/60" />
       </div>
 
       {/* Login Card */}
       <div className="w-full max-w-md relative z-20">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-block bg-white rounded-xl p-4 mb-4">
-            <img
-              src="/roland-logo.svg"
-              alt="Roland DG"
-              className="h-8"
-            />
-          </div>
+          <img
+            src="/rolandhybrid.svg"
+            alt="Roland DG"
+            className="h-12 mx-auto mb-4"
+          />
           <h1 className="text-2xl font-bold text-white">Rotary Sample Gallery</h1>
         </div>
 
