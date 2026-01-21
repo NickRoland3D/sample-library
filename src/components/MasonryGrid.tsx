@@ -136,7 +136,7 @@ export default function MasonryGrid({
             className="group cursor-pointer"
             onClick={() => onSampleClick(sample)}
           >
-            <div className="relative bg-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               {/* Image with fixed aspect ratio */}
               <div className="relative aspect-[4/5] flex items-center justify-center">
                 <img
