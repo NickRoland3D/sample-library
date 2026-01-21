@@ -31,17 +31,17 @@ export default function ManageProductTypesModal({
   const [editingIcon, setEditingIcon] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingField, setEditingField] = useState<'name' | 'icon' | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
-  const editRowRef = useRef<HTMLDivElement>(null)
   const shouldSaveOnBlurRef = useRef(true)
 
-  // Focus input when entering edit mode
+  // Focus input or open icon picker when entering edit mode
   useEffect(() => {
-    if (editingId && editInputRef.current) {
+    if (editingId && editingField === 'name' && editInputRef.current) {
       editInputRef.current.focus()
       editInputRef.current.select()
     }
-  }, [editingId])
+  }, [editingId, editingField])
 
   const handleAddType = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,16 +94,25 @@ export default function ManageProductTypesModal({
     }
   }
 
-  const startEditing = (type: ProductType) => {
+  const startEditingName = (type: ProductType) => {
     setEditingId(type.id)
     setEditingName(type.name)
     setEditingIcon(type.icon)
+    setEditingField('name')
+  }
+
+  const startEditingIcon = (type: ProductType) => {
+    setEditingId(type.id)
+    setEditingName(type.name)
+    setEditingIcon(type.icon)
+    setEditingField('icon')
   }
 
   const cancelEditing = () => {
     setEditingId(null)
     setEditingName('')
     setEditingIcon(null)
+    setEditingField(null)
   }
 
   const saveEditing = async () => {
@@ -297,63 +306,71 @@ export default function ManageProductTypesModal({
                 return (
                   <div
                     key={type.id}
-                    ref={isEditing ? editRowRef : undefined}
                     className={`flex items-center gap-3 p-3 rounded-lg group transition-colors ${
                       isEditing
                         ? 'bg-primary-50 ring-2 ring-primary-200'
-                        : 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
+                        : 'bg-gray-50 hover:bg-gray-100'
                     }`}
-                    onDoubleClick={() => !isEditing && startEditing(type)}
                   >
+                    {/* Icon - double-click to edit icon */}
                     {isEditing ? (
-                      <>
-                        <div onMouseDown={handleIconPickerClick}>
-                          <IconPicker
-                            selectedIcon={editingIcon}
-                            onSelectIcon={setEditingIcon}
-                          />
-                        </div>
-                        <input
-                          ref={editInputRef}
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={handleEditKeyDown}
-                          onBlur={handleInputBlur}
-                          className="flex-1 px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          disabled={isSaving}
+                      <div onMouseDown={handleIconPickerClick}>
+                        <IconPicker
+                          selectedIcon={editingIcon}
+                          onSelectIcon={setEditingIcon}
                         />
-                        {isSaving && (
-                          <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                        )}
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border-2 border-gray-200">
-                          <IconComponent className="w-5 h-5 text-gray-500" stroke={1.5} />
-                        </div>
-                        <span className="text-sm text-gray-700 font-medium flex-1">
-                          {type.name}
-                        </span>
-                        <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mr-2">
-                          Double-click to edit
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteType(type.id, type.name)
-                          }}
-                          disabled={deletingId === type.id}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
-                          title={`Delete ${type.name}`}
-                        >
-                          {deletingId === type.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </>
+                      <div
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border-2 border-gray-200 cursor-pointer hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                        onDoubleClick={() => startEditingIcon(type)}
+                        title="Double-click to change icon"
+                      >
+                        <IconComponent className="w-5 h-5 text-gray-500" stroke={1.5} />
+                      </div>
+                    )}
+
+                    {/* Name - double-click to edit name */}
+                    {isEditing ? (
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={handleEditKeyDown}
+                        onBlur={handleInputBlur}
+                        className="flex-1 px-2 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        disabled={isSaving}
+                      />
+                    ) : (
+                      <span
+                        className="text-sm text-gray-700 font-medium flex-1 cursor-pointer hover:text-primary-600 transition-colors py-1"
+                        onDoubleClick={() => startEditingName(type)}
+                        title="Double-click to rename"
+                      >
+                        {type.name}
+                      </span>
+                    )}
+
+                    {/* Actions */}
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteType(type.id, type.name)
+                        }}
+                        disabled={deletingId === type.id}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                        title={`Delete ${type.name}`}
+                      >
+                        {deletingId === type.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
                     )}
                   </div>
                 )
