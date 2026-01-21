@@ -45,8 +45,6 @@ export default function SampleDetailModal({
   const [editName, setEditName] = useState('')
   const [editProductType, setEditProductType] = useState('')
   const [editNotes, setEditNotes] = useState('')
-  const [editPrintTime, setEditPrintTime] = useState('')
-  const [editInkUsage, setEditInkUsage] = useState('')
 
   // Reset form when sample changes
   useEffect(() => {
@@ -54,8 +52,6 @@ export default function SampleDetailModal({
       setEditName(sample.name)
       setEditProductType(sample.product_type)
       setEditNotes(sample.notes || '')
-      setEditPrintTime(sample.print_time_minutes?.toString() || '')
-      setEditInkUsage(sample.ink_usage_ml?.toString() || '')
       setIsEditing(false)
       setError(null)
     }
@@ -191,7 +187,7 @@ export default function SampleDetailModal({
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="Sample name"
-                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
@@ -202,7 +198,8 @@ export default function SampleDetailModal({
                 <select
                   value={editProductType}
                   onChange={(e) => setEditProductType(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none appearance-none cursor-pointer"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 appearance-none cursor-pointer"
+                  style={{ backgroundImage: 'none' }}
                 >
                   {productTypes.map((type) => (
                     <option key={type.id} value={type.id}>
@@ -221,50 +218,16 @@ export default function SampleDetailModal({
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Add any notes about this sample..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none resize-none"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 resize-none"
                 />
               </div>
 
-              {/* Optional Specs */}
-              <div className="pt-5 border-t border-gray-100">
-                <h4 className="text-sm font-medium text-gray-700 mb-4">
-                  Optional Specifications
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-2">
-                      Print Time (min)
-                    </label>
-                    <input
-                      type="number"
-                      value={editPrintTime}
-                      onChange={(e) => setEditPrintTime(e.target.value)}
-                      placeholder="45"
-                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-2">
-                      Ink Usage (ml)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editInkUsage}
-                      onChange={(e) => setEditInkUsage(e.target.value)}
-                      placeholder="12.5"
-                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-5">
+              <div className="flex gap-3 pt-6">
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -280,10 +243,8 @@ export default function SampleDetailModal({
                     setEditName(sample.name)
                     setEditProductType(sample.product_type)
                     setEditNotes(sample.notes || '')
-                    setEditPrintTime(sample.print_time_minutes?.toString() || '')
-                    setEditInkUsage(sample.ink_usage_ml?.toString() || '')
                   }}
-                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
+                  className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"
                 >
                   Cancel
                 </button>

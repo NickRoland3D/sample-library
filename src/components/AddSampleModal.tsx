@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle, Loader2, Link as LinkIcon, Upload, X } from '
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { ProductType, DifficultyLevel } from '@/types/database'
+import { ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 
 // Compress and resize image to reduce file size
@@ -110,10 +110,6 @@ export default function AddSampleModal({
   const [samplePhoto, setSamplePhoto] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
-  // Optional specs
-  const [printTime, setPrintTime] = useState('')
-  const [inkUsage, setInkUsage] = useState('')
-  const [difficulty, setDifficulty] = useState<DifficultyLevel | ''>('')
 
   // Handle prefilled image from drag-and-drop
   useEffect(() => {
@@ -136,9 +132,6 @@ export default function AddSampleModal({
         setOnedriveFolderUrl('')
         setSamplePhoto(null)
         setImagePreview(null)
-        setPrintTime('')
-        setInkUsage('')
-        setDifficulty('')
         setError(null)
         setUploadProgress({ step: '', progress: 0 })
       }, 300)
@@ -203,11 +196,6 @@ export default function AddSampleModal({
       formData.append('notes', notes.trim())
       formData.append('onedriveFolderUrl', onedriveFolderUrl.trim())
       formData.append('samplePhoto', compressedPhoto)
-
-      // Add optional specs
-      if (printTime) formData.append('printTimeMinutes', printTime)
-      if (inkUsage) formData.append('inkUsageMl', inkUsage)
-      if (difficulty) formData.append('difficulty', difficulty)
 
       setUploadProgress({ step: 'Uploading sample photo...', progress: 50 })
 
@@ -281,38 +269,41 @@ export default function AddSampleModal({
           </div>
 
           {/* Form Section */}
-          <form onSubmit={handleSubmit} className="md:w-1/2 p-6 overflow-y-auto">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Add New Sample</h2>
+          <form onSubmit={handleSubmit} className="md:w-1/2 p-8 overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">Add New Sample</h2>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 mb-4 bg-red-50 text-red-700 rounded-lg text-sm">
+              <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 text-red-700 rounded-2xl text-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Sample name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Sample Name *
                 </label>
-                <Input
+                <input
+                  type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Blue Ocean Vodka Bottle"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
               {/* Product type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Type *
                 </label>
                 <select
                   value={productType}
                   onChange={(e) => setProductType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 appearance-none cursor-pointer"
+                  style={{ backgroundImage: 'none' }}
                 >
                   {productTypes.map((pt) => (
                     <option key={pt.id} value={pt.id}>
@@ -324,18 +315,18 @@ export default function AddSampleModal({
 
               {/* OneDrive folder link */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   OneDrive Folder Link *
                 </label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
                     <LinkIcon className="w-4 h-4 text-gray-400" />
                   </div>
                   <input
                     type="url"
                     value={onedriveFolderUrl}
                     onChange={(e) => setOnedriveFolderUrl(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors"
+                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="https://onedrive.live.com/..."
                   />
                 </div>
@@ -343,73 +334,33 @@ export default function AddSampleModal({
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Notes
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors resize-none"
+                  rows={3}
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 resize-none"
                   placeholder="Any additional notes..."
                 />
               </div>
 
-              {/* Optional Specs */}
-              <div className="pt-4 border-t border-gray-100">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
-                  Optional Specifications
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Print Time (min)
-                    </label>
-                    <Input
-                      type="number"
-                      value={printTime}
-                      onChange={(e) => setPrintTime(e.target.value)}
-                      placeholder="45"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Ink Usage (ml)
-                    </label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={inkUsage}
-                      onChange={(e) => setInkUsage(e.target.value)}
-                      placeholder="12.5"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Difficulty
-                    </label>
-                    <select
-                      value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value as DifficultyLevel | '')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                    >
-                      <option value="">--</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <Button type="button" variant="secondary" onClick={onClose}>
+              <div className="flex items-center justify-end gap-3 pt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"
+                >
                   Cancel
-                </Button>
-                <Button type="submit" variant="primary">
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-2xl hover:bg-gray-800 transition-all"
+                >
                   Add Sample
-                </Button>
+                </button>
               </div>
             </div>
           </form>
