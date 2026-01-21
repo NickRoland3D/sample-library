@@ -95,8 +95,6 @@ export default function SampleDetailModal({
           name: editName.trim(),
           product_type: editProductType,
           notes: editNotes.trim() || null,
-          print_time_minutes: editPrintTime ? parseInt(editPrintTime) : null,
-          ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
         }),
       })
 

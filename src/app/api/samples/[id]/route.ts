@@ -64,23 +64,19 @@ export async function PATCH(
 
     // Parse body
     const body = await request.json()
-    const {
-      name,
-      product_type,
-      notes,
-      print_time_minutes,
-      ink_usage_ml,
-      difficulty,
-    } = body
+    const { name, product_type, notes } = body
 
-    // Build update object with only provided fields
+    // Build update object with only core fields that definitely exist
     const updateData: Record<string, unknown> = {}
 
     if (name !== undefined) updateData.name = name
     if (product_type !== undefined) updateData.product_type = product_type
     if (notes !== undefined) updateData.notes = notes
-    if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
-    if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
+
+    // Only update if there's something to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
 
     const { data: sample, error } = await supabase
       .from('samples')
@@ -90,10 +86,11 @@ export async function PATCH(
       .single()
 
     if (error) {
+      console.error('Supabase update error:', error)
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Sample not found' }, { status: 404 })
       }
-      throw error
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json(sample)
