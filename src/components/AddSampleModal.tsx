@@ -77,6 +77,7 @@ interface AddSampleModalProps {
   onSuccess: () => void
   productTypes: ProductType[]
   prefilledImage?: File | null
+  defaultProductType?: string | null
 }
 
 type UploadStep = 'form' | 'uploading' | 'success' | 'error'
@@ -92,6 +93,7 @@ export default function AddSampleModal({
   onSuccess,
   productTypes,
   prefilledImage,
+  defaultProductType,
 }: AddSampleModalProps) {
   const [step, setStep] = useState<UploadStep>('form')
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
@@ -143,12 +145,17 @@ export default function AddSampleModal({
     }
   }, [isOpen])
 
-  // Set default product type when productTypes load
+  // Set default product type when modal opens or productTypes load
   useEffect(() => {
     if (productTypes.length > 0 && !productType) {
-      setProductType(productTypes[0].id)
+      // Use the provided default (current category) or fall back to first type
+      if (defaultProductType && productTypes.some(pt => pt.id === defaultProductType)) {
+        setProductType(defaultProductType)
+      } else {
+        setProductType(productTypes[0].id)
+      }
     }
-  }, [productTypes, productType])
+  }, [productTypes, productType, defaultProductType])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

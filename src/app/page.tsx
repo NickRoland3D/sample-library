@@ -266,6 +266,7 @@ export default function HomePage() {
         onSuccess={handleAddSuccess}
         productTypes={productTypes}
         prefilledImage={droppedImage}
+        defaultProductType={selectedType}
       />
 
       <ManageProductTypesModal

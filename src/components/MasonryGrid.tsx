@@ -121,7 +121,7 @@ export default function MasonryGrid({
                   loading="lazy"
                 />
                 {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                 {/* Product type badge */}
                 <div className="absolute top-3 left-3">
@@ -129,18 +129,18 @@ export default function MasonryGrid({
                     {getProductTypeName(sample.product_type)}
                   </span>
                 </div>
-              </div>
 
-              {/* Info bar */}
-              <div className="p-3">
-                <h3 className="font-medium text-gray-800 truncate group-hover:text-primary-600 transition-colors">
-                  {sample.name}
-                </h3>
-                {sample.notes && (
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                    {sample.notes}
-                  </p>
-                )}
+                {/* Title overlay - only visible on hover */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <h3 className="font-medium text-white truncate">
+                    {sample.name}
+                  </h3>
+                  {sample.notes && (
+                    <p className="text-xs text-white/80 mt-1 line-clamp-2">
+                      {sample.notes}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
