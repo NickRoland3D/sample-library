@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, AlertCircle, Loader2, Package, Pencil, Check, X } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, Loader2, Package } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -82,7 +82,9 @@ export default function ManageProductTypesModal({
     }
   }
 
-  const handleSaveIcon = async (id: string, icon: string | null) => {
+  const handleIconChange = async (id: string, icon: string) => {
+    // Update local state immediately for responsiveness
+    setEditingIcon(icon)
     setIsSavingIcon(true)
     setError(null)
 
@@ -213,73 +215,37 @@ export default function ManageProductTypesModal({
                     className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors"
                   >
                     {isEditing ? (
-                      <>
-                        <IconPicker
-                          selectedIcon={editingIcon}
-                          onSelectIcon={setEditingIcon}
-                        />
-                        <span className="text-sm text-gray-700 font-medium flex-1">
-                          {type.name}
-                        </span>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleSaveIcon(type.id, editingIcon)}
-                            disabled={isSavingIcon}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                            title="Save"
-                          >
-                            {isSavingIcon ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Check className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingId(null)
-                              setEditingIcon(null)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-                            title="Cancel"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </>
+                      <IconPicker
+                        selectedIcon={editingIcon}
+                        onSelectIcon={(icon) => handleIconChange(type.id, icon)}
+                      />
                     ) : (
-                      <>
-                        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                          <IconComponent className="w-4 h-4 text-gray-500" />
-                        </div>
-                        <span className="text-sm text-gray-700 font-medium flex-1">
-                          {type.name}
-                        </span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => {
-                              setEditingId(type.id)
-                              setEditingIcon(type.icon)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
-                            title="Change icon"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteType(type.id, type.name)}
-                            disabled={deletingId === type.id}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                            title={`Delete ${type.name}`}
-                          >
-                            {deletingId === type.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </>
+                      <div
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border-2 border-gray-200 cursor-pointer hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                        onDoubleClick={() => {
+                          setEditingId(type.id)
+                          setEditingIcon(type.icon)
+                        }}
+                        title="Double-click to change icon"
+                      >
+                        <IconComponent className="w-5 h-5 text-gray-500" stroke={1.5} />
+                      </div>
                     )}
+                    <span className="text-sm text-gray-700 font-medium flex-1">
+                      {type.name}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteType(type.id, type.name)}
+                      disabled={deletingId === type.id}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                      title={`Delete ${type.name}`}
+                    >
+                      {deletingId === type.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 )
               })}
