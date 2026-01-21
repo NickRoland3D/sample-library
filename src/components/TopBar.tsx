@@ -22,13 +22,12 @@ export default function TopBar({
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       {/* Logo */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-primary-500 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-lg">S</span>
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Sample Library</h1>
-        </div>
+      <div className="flex items-center">
+        <img
+          src="/roland-logo.svg"
+          alt="Roland"
+          className="h-9 w-auto"
+        />
       </div>
 
       {/* Search */}
