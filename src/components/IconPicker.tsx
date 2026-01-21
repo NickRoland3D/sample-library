@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type FC } from 'react'
 import {
   Wine,
   Beer,
@@ -23,9 +23,28 @@ import {
   CircleDot,
   type LucideIcon,
 } from 'lucide-react'
+import {
+  customIcons,
+  AerosolCanIcon,
+  BeerBottleIcon,
+  CandleJarIcon,
+  ChampagneBottleIcon,
+  CosmeticJarIcon,
+  DropperBottleIcon,
+  LiquorBottleIcon,
+  LotionPumpIcon,
+  MasonJarIcon,
+  PerfumeBottleIcon,
+  SodaCanIcon,
+  SprayBottleIcon,
+  VialIcon,
+} from './icons/CustomIcons'
 
-// Icon mapping - maps icon names to components
-export const ICON_MAP: Record<string, LucideIcon> = {
+// Custom icon wrapper to match LucideIcon interface
+type IconComponent = LucideIcon | FC<{ className?: string; size?: number | string }>
+
+// Icon mapping - maps icon names to components (Lucide icons)
+export const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
   wine: Wine,
   beer: Beer,
   coffee: Coffee,
@@ -47,15 +66,40 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   'circle-dot': CircleDot,
 }
 
+// Custom icons map
+export const CUSTOM_ICON_MAP: Record<string, FC<{ className?: string; size?: number | string }>> = {
+  'aerosol-can': AerosolCanIcon,
+  'beer-bottle': BeerBottleIcon,
+  'candle-jar': CandleJarIcon,
+  'champagne-bottle': ChampagneBottleIcon,
+  'cosmetic-jar': CosmeticJarIcon,
+  'dropper-bottle': DropperBottleIcon,
+  'liquor-bottle': LiquorBottleIcon,
+  'lotion-pump': LotionPumpIcon,
+  'mason-jar': MasonJarIcon,
+  'perfume-bottle': PerfumeBottleIcon,
+  'soda-can': SodaCanIcon,
+  'spray-bottle': SprayBottleIcon,
+  'vial': VialIcon,
+}
+
+// Combined icon map
+export const ICON_MAP: Record<string, IconComponent> = {
+  ...LUCIDE_ICON_MAP,
+  ...CUSTOM_ICON_MAP,
+}
+
 // Grouped icons for better UX in the picker
 export const ICON_GROUPS = {
-  'Bottles & Glasses': ['wine', 'beer', 'martini', 'glass-water', 'cup-soda', 'coffee', 'milk'],
-  'Containers': ['flask-round', 'flask-conical', 'cylinder', 'box', 'package'],
-  'Other': ['flame', 'sparkles', 'gift', 'shopping-bag', 'droplet', 'palette', 'circle-dot'],
+  'Bottles': ['beer-bottle', 'champagne-bottle', 'liquor-bottle', 'wine', 'beer', 'martini'],
+  'Jars & Containers': ['mason-jar', 'candle-jar', 'cosmetic-jar', 'flask-round', 'flask-conical', 'cylinder'],
+  'Cans & Sprays': ['soda-can', 'aerosol-can', 'spray-bottle', 'cup-soda'],
+  'Cosmetics & Dispensers': ['perfume-bottle', 'dropper-bottle', 'lotion-pump', 'vial'],
+  'Other': ['glass-water', 'coffee', 'milk', 'flame', 'sparkles', 'gift', 'shopping-bag', 'droplet', 'palette', 'box', 'package', 'circle-dot'],
 }
 
 // Get icon component by name
-export function getIconComponent(iconName: string | null): LucideIcon {
+export function getIconComponent(iconName: string | null): IconComponent {
   if (!iconName || !ICON_MAP[iconName]) {
     return CircleDot // Default icon
   }
