@@ -62,16 +62,19 @@ export interface Database {
         Row: {
           id: string
           name: string
+          icon: string | null
           created_at: string
         }
         Insert: {
           id?: string
           name: string
+          icon?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
+          icon?: string | null
           created_at?: string
         }
       }

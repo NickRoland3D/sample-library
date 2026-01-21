@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, ChevronLeft, ChevronRight, Package } from 'lucide-react'
 import { ProductType } from '@/types/database'
+import { getIconComponent } from '@/components/IconPicker'
 
 interface SidebarProps {
   productTypes: ProductType[]
@@ -75,6 +76,7 @@ export default function Sidebar({
           {productTypes.map((type) => {
             const count = sampleCounts[type.id] || 0
             const isActive = selectedType === type.id
+            const IconComponent = getIconComponent(type.icon)
 
             return (
               <button
@@ -89,8 +91,8 @@ export default function Sidebar({
                 `}
                 title={isCollapsed ? `${type.name} (${count})` : undefined}
               >
-                <div
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${isActive ? 'bg-primary-500' : 'bg-gray-300'}`}
+                <IconComponent
+                  className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-primary-500' : 'text-gray-400'}`}
                 />
                 {!isCollapsed && (
                   <div className="flex-1 flex items-center justify-between min-w-0">

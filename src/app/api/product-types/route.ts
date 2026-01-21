@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name } = await request.json()
+    const { name, icon } = await request.json()
 
     if (!name) {
       return NextResponse.json(
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const { data: productType, error } = await supabase
       .from('product_types')
-      .insert({ name })
+      .insert({ name, icon: icon || null })
       .select()
       .single()
 
@@ -57,6 +57,63 @@ export async function POST(request: NextRequest) {
     console.error('Error creating product type:', error)
     return NextResponse.json(
       { error: 'Failed to create product type' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Product type ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+    const updateData: Record<string, unknown> = {}
+
+    if ('icon' in body) {
+      updateData.icon = body.icon
+    }
+
+    if ('name' in body) {
+      updateData.name = body.name
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      )
+    }
+
+    const { data: productType, error } = await supabase
+      .from('product_types')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Product type not found' },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
+
+    return NextResponse.json(productType)
+  } catch (error) {
+    console.error('Error updating product type:', error)
+    return NextResponse.json(
+      { error: 'Failed to update product type' },
       { status: 500 }
     )
   }

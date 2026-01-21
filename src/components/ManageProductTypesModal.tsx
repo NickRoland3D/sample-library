@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, AlertCircle, Loader2, Package } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, Loader2, Package, Pencil, Check, X } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
+import IconPicker, { getIconComponent } from '@/components/IconPicker'
 
 interface ManageProductTypesModalProps {
   isOpen: boolean
@@ -22,8 +23,12 @@ export default function ManageProductTypesModal({
   onProductTypesChange,
 }: ManageProductTypesModalProps) {
   const [newTypeName, setNewTypeName] = useState('')
+  const [newTypeIcon, setNewTypeIcon] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingIcon, setEditingIcon] = useState<string | null>(null)
+  const [isSavingIcon, setIsSavingIcon] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleAddType = async (e: React.FormEvent) => {
@@ -59,7 +64,7 @@ export default function ManageProductTypesModal({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ name: newTypeName.trim() }),
+        body: JSON.stringify({ name: newTypeName.trim(), icon: newTypeIcon }),
       })
 
       if (!response.ok) {
@@ -68,11 +73,48 @@ export default function ManageProductTypesModal({
       }
 
       setNewTypeName('')
+      setNewTypeIcon(null)
       onProductTypesChange()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add product type')
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  const handleSaveIcon = async (id: string, icon: string | null) => {
+    setIsSavingIcon(true)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/product-types?id=${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ icon }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update icon')
+      }
+
+      setEditingId(null)
+      setEditingIcon(null)
+      onProductTypesChange()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update icon')
+    } finally {
+      setIsSavingIcon(false)
     }
   }
 
@@ -126,7 +168,11 @@ export default function ManageProductTypesModal({
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             Add New Product Type
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <IconPicker
+              selectedIcon={newTypeIcon}
+              onSelectIcon={setNewTypeIcon}
+            />
             <Input
               id="newTypeName"
               value={newTypeName}
@@ -157,28 +203,86 @@ export default function ManageProductTypesModal({
             </div>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {productTypes.map((type) => (
-                <div
-                  key={type.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors"
-                >
-                  <span className="text-sm text-gray-700 font-medium">
-                    {type.name}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteType(type.id, type.name)}
-                    disabled={deletingId === type.id}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
-                    title={`Delete ${type.name}`}
+              {productTypes.map((type) => {
+                const IconComponent = getIconComponent(type.icon)
+                const isEditing = editingId === type.id
+
+                return (
+                  <div
+                    key={type.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors"
                   >
-                    {deletingId === type.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    {isEditing ? (
+                      <>
+                        <IconPicker
+                          selectedIcon={editingIcon}
+                          onSelectIcon={setEditingIcon}
+                        />
+                        <span className="text-sm text-gray-700 font-medium flex-1">
+                          {type.name}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleSaveIcon(type.id, editingIcon)}
+                            disabled={isSavingIcon}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                            title="Save"
+                          >
+                            {isSavingIcon ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null)
+                              setEditingIcon(null)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+                            title="Cancel"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
                     ) : (
-                      <Trash2 className="w-4 h-4" />
+                      <>
+                        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200">
+                          <IconComponent className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium flex-1">
+                          {type.name}
+                        </span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              setEditingId(type.id)
+                              setEditingIcon(type.icon)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
+                            title="Change icon"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteType(type.id, type.name)}
+                            disabled={deletingId === type.id}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                            title={`Delete ${type.name}`}
+                          >
+                            {deletingId === type.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </>
                     )}
-                  </button>
-                </div>
-              ))}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
