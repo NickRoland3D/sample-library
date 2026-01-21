@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import {
-  X,
   Copy,
   Check,
   Edit2,
@@ -170,52 +169,46 @@ export default function SampleDetailModal({
     <Modal isOpen={isOpen} onClose={handleClose} title="" size="xl">
       <div className="flex flex-col md:flex-row max-h-[85vh]">
         {/* Image Section */}
-        <div className="md:w-1/2 bg-gray-100 flex items-center justify-center p-4 md:p-6">
+        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6 md:p-8">
           <img
             src={sample.thumbnail_url}
             alt={sample.name}
-            className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-lg shadow-sm"
+            className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
           />
         </div>
 
         {/* Info Section */}
-        <div className="md:w-1/2 p-6 overflow-y-auto">
-          {/* Close button */}
-          <button
-            onClick={handleClose}
-            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
+        <div className="md:w-1/2 p-6 md:p-8 overflow-y-auto">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-2xl text-sm border border-red-100">
               {error}
             </div>
           )}
 
           {isEditing ? (
             /* Edit Mode */
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Sample Name *
                 </label>
-                <Input
+                <input
+                  type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="Sample name"
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Type
                 </label>
                 <select
                   value={editProductType}
                   onChange={(e) => setEditProductType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none appearance-none cursor-pointer"
                 >
                   {productTypes.map((type) => (
                     <option key={type.id} value={type.id}>
@@ -226,7 +219,7 @@ export default function SampleDetailModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Notes
                 </label>
                 <textarea
@@ -234,47 +227,49 @@ export default function SampleDetailModal({
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Add any notes about this sample..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none resize-none"
                 />
               </div>
 
               {/* Optional Specs */}
-              <div className="pt-4 border-t border-gray-100">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
+              <div className="pt-5 border-t border-gray-100">
+                <h4 className="text-sm font-medium text-gray-700 mb-4">
                   Optional Specifications
                 </h4>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">
+                    <label className="block text-xs text-gray-500 mb-2">
                       Print Time (min)
                     </label>
-                    <Input
+                    <input
                       type="number"
                       value={editPrintTime}
                       onChange={(e) => setEditPrintTime(e.target.value)}
                       placeholder="45"
+                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">
+                    <label className="block text-xs text-gray-500 mb-2">
                       Ink Usage (ml)
                     </label>
-                    <Input
+                    <input
                       type="number"
                       step="0.1"
                       value={editInkUsage}
                       onChange={(e) => setEditInkUsage(e.target.value)}
                       placeholder="12.5"
+                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">
+                    <label className="block text-xs text-gray-500 mb-2">
                       Difficulty
                     </label>
                     <select
                       value={editDifficulty}
                       onChange={(e) => setEditDifficulty(e.target.value as DifficultyLevel | '')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                      className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 outline-none text-sm appearance-none cursor-pointer"
                     >
                       <option value="">--</option>
                       <option value="Easy">Easy</option>
@@ -286,12 +281,11 @@ export default function SampleDetailModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="primary"
+              <div className="flex gap-3 pt-5">
+                <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex-1"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                 >
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -299,9 +293,8 @@ export default function SampleDetailModal({
                     <Save className="w-4 h-4" />
                   )}
                   Save Changes
-                </Button>
-                <Button
-                  variant="secondary"
+                </button>
+                <button
                   onClick={() => {
                     setIsEditing(false)
                     // Reset to original values
@@ -312,23 +305,24 @@ export default function SampleDetailModal({
                     setEditInkUsage(sample.ink_usage_ml?.toString() || '')
                     setEditDifficulty(sample.difficulty || '')
                   }}
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </div>
           ) : (
             /* View Mode */
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Header */}
               <div>
-                <span className="inline-block px-2.5 py-1 bg-primary-50 text-primary-700 text-xs font-medium rounded-full mb-2">
+                <span className="inline-block px-3 py-1.5 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full mb-3">
                   {getProductTypeName(sample.product_type)}
                 </span>
-                <h2 className="text-2xl font-semibold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {sample.name}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 mt-1.5">
                   Added {new Date(sample.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -336,12 +330,12 @@ export default function SampleDetailModal({
               {/* Copy Link Button */}
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-2 w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-700 transition-colors"
+                className="flex items-center gap-3 w-full px-5 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl text-gray-700 transition-all duration-200 group"
               >
                 {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="w-5 h-5 text-green-500" />
                 ) : (
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
                 )}
                 <span className="text-sm font-medium">
                   {copied ? 'Link copied!' : 'Copy Sample Link'}
@@ -354,18 +348,18 @@ export default function SampleDetailModal({
                   href={sample.onedrive_folder_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors"
+                  className="flex items-center gap-3 w-full px-5 py-4 bg-blue-50 hover:bg-blue-100 rounded-2xl text-blue-700 transition-all duration-200 group"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-5 h-5 text-blue-500 group-hover:text-blue-600" />
                   <span className="text-sm font-medium">Open in OneDrive</span>
                 </a>
               )}
 
               {/* Notes */}
               {sample.notes && (
-                <div className="pt-4 border-t border-gray-100">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Notes</h4>
-                  <p className="text-gray-600 text-sm whitespace-pre-wrap">
+                <div className="pt-5 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes</h4>
+                  <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">
                     {sample.notes}
                   </p>
                 </div>
@@ -373,33 +367,33 @@ export default function SampleDetailModal({
 
               {/* Specs */}
               {hasSpecs && (
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-5 border-t border-gray-100">
                   <div className="grid grid-cols-3 gap-3">
                     {sample.print_time_minutes && (
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <Clock className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
+                        <Clock className="w-5 h-5 text-primary-500 mx-auto mb-2" />
+                        <p className="text-sm font-bold text-gray-900">
                           {sample.print_time_minutes} min
                         </p>
-                        <p className="text-xs text-gray-500">Print Time</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Print Time</p>
                       </div>
                     )}
                     {sample.ink_usage_ml && (
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <Droplets className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
+                        <Droplets className="w-5 h-5 text-primary-500 mx-auto mb-2" />
+                        <p className="text-sm font-bold text-gray-900">
                           {sample.ink_usage_ml} ml
                         </p>
-                        <p className="text-xs text-gray-500">Ink Usage</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Ink Usage</p>
                       </div>
                     )}
                     {sample.difficulty && (
-                      <div className="p-3 bg-gray-50 rounded-lg text-center">
-                        <Gauge className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
+                        <Gauge className="w-5 h-5 text-primary-500 mx-auto mb-2" />
+                        <p className="text-sm font-bold text-gray-900">
                           {sample.difficulty}
                         </p>
-                        <p className="text-xs text-gray-500">Difficulty</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Difficulty</p>
                       </div>
                     )}
                   </div>
@@ -407,20 +401,18 @@ export default function SampleDetailModal({
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-gray-100">
-                <Button
-                  variant="secondary"
+              <div className="flex gap-3 pt-5 border-t border-gray-100">
+                <button
                   onClick={() => setIsEditing(true)}
-                  className="flex-1"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit
-                </Button>
-                <Button
-                  variant="secondary"
+                </button>
+                <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="text-red-600 hover:bg-red-50 hover:border-red-200"
+                  className="flex items-center justify-center gap-2 px-5 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
                 >
                   {isDeleting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -428,7 +420,7 @@ export default function SampleDetailModal({
                     <Trash2 className="w-4 h-4" />
                   )}
                   Delete
-                </Button>
+                </button>
               </div>
             </div>
           )}

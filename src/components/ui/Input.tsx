@@ -15,7 +15,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-2"
           >
             {label}
           </label>
@@ -24,22 +24,23 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           className={`
-            w-full px-3.5 py-2.5 text-sm rounded-lg border
-            transition-colors duration-200
+            w-full px-4 py-3 text-sm rounded-xl border-2
+            bg-gray-50
+            transition-all duration-200
             placeholder:text-gray-400
-            focus:outline-none focus:ring-2 focus:ring-offset-0
+            focus:outline-none focus:ring-2 focus:ring-offset-0 focus:bg-white
             ${error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-              : 'border-gray-300 focus:border-primary-500 focus:ring-primary-200'
+              ? 'border-red-200 focus:border-red-400 focus:ring-red-100'
+              : 'border-gray-100 focus:border-primary-400 focus:ring-primary-100'
             }
-            disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+            disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed
             ${className}
           `}
           {...props}
         />
-        {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         {helperText && !error && (
-          <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+          <p className="mt-2 text-sm text-gray-500">{helperText}</p>
         )}
       </div>
     )
