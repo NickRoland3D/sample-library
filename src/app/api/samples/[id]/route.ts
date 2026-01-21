@@ -96,14 +96,17 @@ export async function PATCH(
       ink_usage_ml = body.ink_usage_ml
     }
 
-    // Build update object
+    // Build update object - only include core fields that exist in the database
+    // Note: print_time_minutes and ink_usage_ml columns need to be added to Supabase
+    // Run this SQL: ALTER TABLE samples ADD COLUMN IF NOT EXISTS print_time_minutes INTEGER, ADD COLUMN IF NOT EXISTS ink_usage_ml DECIMAL;
     const updateData: Record<string, unknown> = {}
 
     if (name !== undefined) updateData.name = name
     if (product_type !== undefined) updateData.product_type = product_type
     if (notes !== undefined) updateData.notes = notes
-    if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
-    if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
+    // Temporarily disabled until columns are added to database:
+    // if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
+    // if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
 
     // Handle image upload if provided
     if (samplePhoto && samplePhoto.size > 0) {
