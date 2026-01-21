@@ -9,13 +9,15 @@ const supabase = createClient(
 // GET single sample
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     const { data: sample, error } = await supabase
       .from('samples')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -38,9 +40,11 @@ export async function GET(
 // UPDATE sample
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     // Get auth header
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
@@ -84,7 +88,7 @@ export async function PATCH(
     const { data: sample, error } = await supabase
       .from('samples')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -108,9 +112,11 @@ export async function PATCH(
 // DELETE sample
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     // Get auth header
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
@@ -132,7 +138,7 @@ export async function DELETE(
     const { data: sample, error: fetchError } = await supabase
       .from('samples')
       .select('thumbnail_url')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError) {
@@ -156,7 +162,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('samples')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (deleteError) throw deleteError
 

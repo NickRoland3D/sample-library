@@ -240,6 +240,7 @@ export default function HomePage() {
         {/* Masonry Grid */}
         <MasonryGrid
           samples={filteredSamples}
+          productTypes={productTypes}
           onSampleClick={handleSampleClick}
           onDropImage={handleDropImage}
         />

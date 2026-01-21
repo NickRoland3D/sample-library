@@ -2,20 +2,27 @@
 
 import { useState, useCallback } from 'react'
 import { Upload, ImagePlus } from 'lucide-react'
-import { Sample } from '@/types/database'
+import { Sample, ProductType } from '@/types/database'
 
 interface MasonryGridProps {
   samples: Sample[]
+  productTypes: ProductType[]
   onSampleClick: (sample: Sample) => void
   onDropImage: (file: File) => void
 }
 
 export default function MasonryGrid({
   samples,
+  productTypes,
   onSampleClick,
   onDropImage,
 }: MasonryGridProps) {
   const [isDragOver, setIsDragOver] = useState(false)
+
+  const getProductTypeName = (typeId: string) => {
+    const type = productTypes.find(pt => pt.id === typeId)
+    return type?.name || typeId
+  }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -119,7 +126,7 @@ export default function MasonryGrid({
                 {/* Product type badge */}
                 <div className="absolute top-3 left-3">
                   <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full shadow-sm">
-                    {sample.product_type}
+                    {getProductTypeName(sample.product_type)}
                   </span>
                 </div>
               </div>
