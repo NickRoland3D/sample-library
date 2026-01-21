@@ -20,17 +20,26 @@ export default function TopBar({
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+      {/* Logo */}
+      <div className="w-56 flex items-center">
+        <img
+          src="/roland-logo.svg"
+          alt="Roland"
+          className="h-6 w-auto"
+        />
+      </div>
+
       {/* Search */}
-      <div className="flex-1 max-w-xl">
+      <div className="flex-1 max-w-md">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search samples..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all"
+            className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all"
           />
         </div>
       </div>

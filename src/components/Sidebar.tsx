@@ -30,29 +30,10 @@ export default function Sidebar({
         ${isCollapsed ? 'w-16' : 'w-64'}
       `}
     >
-      {/* Logo */}
-      <div className={`h-16 flex items-center border-b border-gray-200 ${isCollapsed ? 'px-3 justify-center' : 'px-4'}`}>
-        {!isCollapsed && (
-          <img
-            src="/roland-logo.svg"
-            alt="Roland"
-            className="h-7 w-auto"
-          />
-        )}
-        {isCollapsed && (
-          <img
-            src="/roland-logo.svg"
-            alt="Roland"
-            className="h-6 w-auto"
-            style={{ clipPath: 'inset(0 70% 0 0)' }}
-          />
-        )}
-      </div>
-
       {/* Collapse Toggle */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 z-10 p-1 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
+        className="absolute -right-3 top-6 z-10 p-1 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {isCollapsed ? (
