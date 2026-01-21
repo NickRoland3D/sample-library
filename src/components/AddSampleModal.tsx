@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Loader2, Link as LinkIcon } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2, Link as LinkIcon, Upload, X } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import Select from '@/components/ui/Select'
-import FileDropzone from '@/components/FileDropzone'
-import { ProductType } from '@/types/database'
+import { ProductType, DifficultyLevel } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 
 interface AddSampleModalProps {
@@ -15,6 +13,7 @@ interface AddSampleModalProps {
   onClose: () => void
   onSuccess: () => void
   productTypes: ProductType[]
+  prefilledImage?: File | null
 }
 
 type UploadStep = 'form' | 'uploading' | 'success' | 'error'
@@ -29,6 +28,7 @@ export default function AddSampleModal({
   onClose,
   onSuccess,
   productTypes,
+  prefilledImage,
 }: AddSampleModalProps) {
   const [step, setStep] = useState<UploadStep>('form')
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
@@ -42,7 +42,23 @@ export default function AddSampleModal({
   const [productType, setProductType] = useState('')
   const [notes, setNotes] = useState('')
   const [onedriveFolderUrl, setOnedriveFolderUrl] = useState('')
-  const [samplePhoto, setSamplePhoto] = useState<File[]>([])
+  const [samplePhoto, setSamplePhoto] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  // Optional specs
+  const [printTime, setPrintTime] = useState('')
+  const [inkUsage, setInkUsage] = useState('')
+  const [difficulty, setDifficulty] = useState<DifficultyLevel | ''>('')
+
+  // Handle prefilled image from drag-and-drop
+  useEffect(() => {
+    if (prefilledImage && isOpen) {
+      setSamplePhoto(prefilledImage)
+      const url = URL.createObjectURL(prefilledImage)
+      setImagePreview(url)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [prefilledImage, isOpen])
 
   // Reset form when modal closes
   useEffect(() => {
@@ -53,17 +69,45 @@ export default function AddSampleModal({
         setProductType('')
         setNotes('')
         setOnedriveFolderUrl('')
-        setSamplePhoto([])
+        setSamplePhoto(null)
+        setImagePreview(null)
+        setPrintTime('')
+        setInkUsage('')
+        setDifficulty('')
         setError(null)
         setUploadProgress({ step: '', progress: 0 })
       }, 300)
     }
   }, [isOpen])
 
+  // Set default product type when productTypes load
+  useEffect(() => {
+    if (productTypes.length > 0 && !productType) {
+      setProductType(productTypes[0].id)
+    }
+  }, [productTypes, productType])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSamplePhoto(file)
+      const url = URL.createObjectURL(file)
+      setImagePreview(url)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setSamplePhoto(null)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview(null)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name.trim() || !productType || samplePhoto.length === 0 || !onedriveFolderUrl.trim()) {
+    if (!name.trim() || !productType || !samplePhoto || !onedriveFolderUrl.trim()) {
       setError('Please fill in all required fields')
       return
     }
@@ -84,7 +128,12 @@ export default function AddSampleModal({
       formData.append('productType', productType)
       formData.append('notes', notes.trim())
       formData.append('onedriveFolderUrl', onedriveFolderUrl.trim())
-      formData.append('samplePhoto', samplePhoto[0])
+      formData.append('samplePhoto', samplePhoto)
+
+      // Add optional specs
+      if (printTime) formData.append('printTimeMinutes', printTime)
+      if (inkUsage) formData.append('inkUsageMl', inkUsage)
+      if (difficulty) formData.append('difficulty', difficulty)
 
       setUploadProgress({ step: 'Uploading sample photo...', progress: 50 })
 
@@ -122,108 +171,175 @@ export default function AddSampleModal({
     }
   }
 
-  const handleRemovePhoto = (index: number) => {
-    setSamplePhoto((prev) => prev.filter((_, i) => i !== index))
-  }
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add New Sample" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="" size="xl">
       {step === 'form' && (
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* Sample name */}
-          <Input
-            id="name"
-            label="Sample Name *"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Bain's Whisky Label Design"
-          />
-
-          {/* Product type */}
-          <Select
-            id="productType"
-            label="Product Type *"
-            value={productType}
-            onChange={(e) => setProductType(e.target.value)}
-            placeholder="Select a product type"
-            options={productTypes.map((pt) => ({ value: pt.name, label: pt.name }))}
-          />
-
-          {/* Sample photo */}
-          <FileDropzone
-            label="Sample Photo *"
-            files={samplePhoto}
-            onFilesSelected={(files) => setSamplePhoto(files.slice(0, 1))}
-            onRemoveFile={handleRemovePhoto}
-            accept={{
-              'image/*': ['.jpg', '.jpeg', '.png', '.webp'],
-            }}
-            maxFiles={1}
-            helperText="Upload a photo of the physical sample (JPG, PNG, WebP)"
-            isImage
-          />
-
-          {/* OneDrive folder link */}
-          <div>
-            <label
-              htmlFor="onedriveFolderUrl"
-              className="block text-sm font-medium text-gray-700 mb-1.5"
-            >
-              OneDrive Folder Link *
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <LinkIcon className="w-4 h-4 text-gray-400" />
+        <div className="flex flex-col md:flex-row max-h-[85vh]">
+          {/* Image Section */}
+          <div className="md:w-1/2 bg-gray-100 flex items-center justify-center p-6 min-h-[300px]">
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-w-full max-h-[400px] object-contain rounded-lg shadow-sm"
+                />
+                <button
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <input
-                id="onedriveFolderUrl"
-                type="url"
-                value={onedriveFolderUrl}
-                onChange={(e) => setOnedriveFolderUrl(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors"
-                placeholder="https://onedrive.live.com/..."
-              />
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-full min-h-[250px] border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-gray-50 transition-colors">
+                <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                <span className="text-sm font-medium text-gray-600">Click to upload photo</span>
+                <span className="text-xs text-gray-400 mt-1">JPG, PNG, WebP</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          {/* Form Section */}
+          <form onSubmit={handleSubmit} className="md:w-1/2 p-6 overflow-y-auto">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Add New Sample</h2>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 mb-4 bg-red-50 text-red-700 rounded-lg text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Sample name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Sample Name *
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Blue Ocean Vodka Bottle"
+                />
+              </div>
+
+              {/* Product type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Type *
+                </label>
+                <select
+                  value={productType}
+                  onChange={(e) => setProductType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  {productTypes.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* OneDrive folder link */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  OneDrive Folder Link *
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                    <LinkIcon className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="url"
+                    value={onedriveFolderUrl}
+                    onChange={(e) => setOnedriveFolderUrl(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors"
+                    placeholder="https://onedrive.live.com/..."
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors resize-none"
+                  placeholder="Any additional notes..."
+                />
+              </div>
+
+              {/* Optional Specs */}
+              <div className="pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  Optional Specifications
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Print Time (min)
+                    </label>
+                    <Input
+                      type="number"
+                      value={printTime}
+                      onChange={(e) => setPrintTime(e.target.value)}
+                      placeholder="45"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Ink Usage (ml)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={inkUsage}
+                      onChange={(e) => setInkUsage(e.target.value)}
+                      placeholder="12.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Difficulty
+                    </label>
+                    <select
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value as DifficultyLevel | '')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    >
+                      <option value="">--</option>
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <Button type="button" variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary">
+                  Add Sample
+                </Button>
+              </div>
             </div>
-            <p className="mt-1.5 text-sm text-gray-500">
-              Paste the share link to the OneDrive folder containing your design files
-            </p>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label
-              htmlFor="notes"
-              className="block text-sm font-medium text-gray-700 mb-1.5"
-            >
-              Notes (optional)
-            </label>
-            <textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-colors resize-none"
-              placeholder="Any additional notes about this sample..."
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary">
-              Add Sample
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {step === 'uploading' && (

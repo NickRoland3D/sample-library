@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import Header from '@/components/Header'
-import FilterBar from '@/components/FilterBar'
-import SampleCard from '@/components/SampleCard'
-import SampleModal from '@/components/SampleModal'
+import TopBar from '@/components/TopBar'
+import Sidebar from '@/components/Sidebar'
+import MasonryGrid from '@/components/MasonryGrid'
+import SampleDetailModal from '@/components/SampleDetailModal'
 import AddSampleModal from '@/components/AddSampleModal'
 import ManageProductTypesModal from '@/components/ManageProductTypesModal'
-import EmptyState from '@/components/EmptyState'
+import FloatingActionButton from '@/components/FloatingActionButton'
 import { Sample, ProductType, Profile } from '@/types/database'
 import { Loader2 } from 'lucide-react'
 
@@ -30,9 +30,10 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [selectedSample, setSelectedSample] = useState<Sample | null>(null)
-  const [showSampleModal, setShowSampleModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showManageTypesModal, setShowManageTypesModal] = useState(false)
+  const [droppedImage, setDroppedImage] = useState<File | null>(null)
 
   // Check auth
   useEffect(() => {
@@ -69,7 +70,7 @@ export default function HomePage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event: string, session: unknown) => {
+    } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === 'SIGNED_OUT') {
         router.push('/login')
       }
@@ -111,6 +112,16 @@ export default function HomePage() {
     loadData()
   }, [authLoading, supabase])
 
+  // Calculate sample counts per category
+  const sampleCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    samples.forEach((sample) => {
+      const typeId = sample.product_type
+      counts[typeId] = (counts[typeId] || 0) + 1
+    })
+    return counts
+  }, [samples])
+
   // Filter samples
   const filteredSamples = useMemo(() => {
     return samples.filter((sample) => {
@@ -133,7 +144,17 @@ export default function HomePage() {
 
   const handleSampleClick = (sample: Sample) => {
     setSelectedSample(sample)
-    setShowSampleModal(true)
+    setShowDetailModal(true)
+  }
+
+  const handleDropImage = (file: File) => {
+    setDroppedImage(file)
+    setShowAddModal(true)
+  }
+
+  const handleAddModalClose = () => {
+    setShowAddModal(false)
+    setDroppedImage(null)
   }
 
   const handleAddSuccess = async () => {
@@ -146,6 +167,28 @@ export default function HomePage() {
     if (samplesData) {
       setSamples(samplesData)
     }
+  }
+
+  const handleSampleUpdate = async () => {
+    // Reload samples
+    const { data: samplesData } = await supabase
+      .from('samples')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (samplesData) {
+      setSamples(samplesData)
+      // Update selected sample with fresh data
+      if (selectedSample) {
+        const updated = samplesData.find((s) => s.id === selectedSample.id)
+        if (updated) setSelectedSample(updated)
+      }
+    }
+  }
+
+  const handleSampleDelete = (id: string) => {
+    setSamples((prev) => prev.filter((s) => s.id !== id))
+    setSelectedSample(null)
   }
 
   const handleProductTypesChange = async () => {
@@ -173,63 +216,54 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Top Bar */}
+      <TopBar
         user={user}
-        onAddNew={() => setShowAddModal(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
         onSignOut={handleSignOut}
-        onManageTypes={() => setShowManageTypesModal(true)}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {samples.length === 0 ? (
-          <EmptyState type="no-samples" onAddNew={() => setShowAddModal(true)} />
-        ) : (
-          <>
-            <FilterBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              productTypes={productTypes}
-              totalResults={filteredSamples.length}
-            />
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar
+          productTypes={productTypes}
+          selectedType={selectedType}
+          onTypeChange={setSelectedType}
+          onManageTypes={() => setShowManageTypesModal(true)}
+          sampleCounts={sampleCounts}
+          totalSamples={samples.length}
+        />
 
-            {filteredSamples.length === 0 ? (
-              <EmptyState
-                type="no-results"
-                onClearFilters={() => {
-                  setSearchQuery('')
-                  setSelectedType(null)
-                }}
-              />
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredSamples.map((sample) => (
-                  <SampleCard
-                    key={sample.id}
-                    sample={sample}
-                    onClick={() => handleSampleClick(sample)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </main>
+        {/* Masonry Grid */}
+        <MasonryGrid
+          samples={filteredSamples}
+          onSampleClick={handleSampleClick}
+          onDropImage={handleDropImage}
+        />
+      </div>
+
+      {/* Floating Action Button */}
+      <FloatingActionButton onClick={() => setShowAddModal(true)} />
 
       {/* Modals */}
-      <SampleModal
+      <SampleDetailModal
         sample={selectedSample}
-        isOpen={showSampleModal}
-        onClose={() => setShowSampleModal(false)}
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        productTypes={productTypes}
+        onSampleUpdate={handleSampleUpdate}
+        onSampleDelete={handleSampleDelete}
       />
 
       <AddSampleModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleAddModalClose}
         onSuccess={handleAddSuccess}
         productTypes={productTypes}
+        prefilledImage={droppedImage}
       />
 
       <ManageProductTypesModal

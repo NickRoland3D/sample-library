@@ -6,6 +6,8 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard'
+
 export interface Database {
   public: {
     Tables: {
@@ -21,6 +23,9 @@ export interface Database {
           onedrive_folder_id: string
           notes: string | null
           uploaded_by: string
+          print_time_minutes: number | null
+          ink_usage_ml: number | null
+          difficulty: DifficultyLevel | null
         }
         Insert: {
           id?: string
@@ -33,6 +38,9 @@ export interface Database {
           onedrive_folder_id: string
           notes?: string | null
           uploaded_by: string
+          print_time_minutes?: number | null
+          ink_usage_ml?: number | null
+          difficulty?: DifficultyLevel | null
         }
         Update: {
           id?: string
@@ -45,6 +53,9 @@ export interface Database {
           onedrive_folder_id?: string
           notes?: string | null
           uploaded_by?: string
+          print_time_minutes?: number | null
+          ink_usage_ml?: number | null
+          difficulty?: DifficultyLevel | null
         }
       }
       product_types: {
@@ -95,7 +106,7 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      difficulty_level: DifficultyLevel
     }
   }
 }
