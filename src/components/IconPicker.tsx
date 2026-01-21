@@ -2,106 +2,94 @@
 
 import { useState, useRef, useEffect, type FC } from 'react'
 import {
-  Wine,
-  Beer,
-  Coffee,
-  CupSoda,
-  GlassWater,
-  Martini,
-  Milk,
-  FlaskConical,
-  FlaskRound,
-  Flame,
-  Package,
-  Box,
-  Cylinder,
-  Sparkles,
-  Gift,
-  ShoppingBag,
-  Droplet,
-  Palette,
-  CircleDot,
-  type LucideIcon,
-} from 'lucide-react'
-import {
-  customIcons,
-  AerosolCanIcon,
-  BeerBottleIcon,
-  CandleJarIcon,
-  ChampagneBottleIcon,
-  CosmeticJarIcon,
-  DropperBottleIcon,
-  LiquorBottleIcon,
-  LotionPumpIcon,
-  MasonJarIcon,
-  PerfumeBottleIcon,
-  SodaCanIcon,
-  SprayBottleIcon,
-  VialIcon,
-} from './icons/CustomIcons'
+  IconBottle,
+  IconBeer,
+  IconCoffee,
+  IconCandle,
+  IconContainer,
+  IconCup,
+  IconFlask,
+  IconFlask2,
+  IconGlass,
+  IconGlassChampagne,
+  IconGlassCocktail,
+  IconGlassFull,
+  IconGlassGin,
+  IconMug,
+  IconPerfume,
+  IconSpray,
+  IconTipJar,
+  IconVaccineBottle,
+  IconBabyBottle,
+  IconDroplet,
+  IconFlame,
+  IconSparkles,
+  IconGift,
+  IconShoppingBag,
+  IconPalette,
+  IconCircleDot,
+  IconBox,
+  IconPackage,
+  type Icon,
+} from '@tabler/icons-react'
 
-// Custom icon wrapper to match LucideIcon interface
-type IconComponent = LucideIcon | FC<{ className?: string; size?: number | string }>
+// Icon component type
+type IconComponent = Icon
 
-// Icon mapping - maps icon names to components (Lucide icons)
-export const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
-  wine: Wine,
-  beer: Beer,
-  coffee: Coffee,
-  'cup-soda': CupSoda,
-  'glass-water': GlassWater,
-  martini: Martini,
-  milk: Milk,
-  'flask-round': FlaskRound,
-  'flask-conical': FlaskConical,
-  flame: Flame,
-  package: Package,
-  box: Box,
-  cylinder: Cylinder,
-  sparkles: Sparkles,
-  gift: Gift,
-  'shopping-bag': ShoppingBag,
-  droplet: Droplet,
-  palette: Palette,
-  'circle-dot': CircleDot,
-}
-
-// Custom icons map
-export const CUSTOM_ICON_MAP: Record<string, FC<{ className?: string; size?: number | string }>> = {
-  'aerosol-can': AerosolCanIcon,
-  'beer-bottle': BeerBottleIcon,
-  'candle-jar': CandleJarIcon,
-  'champagne-bottle': ChampagneBottleIcon,
-  'cosmetic-jar': CosmeticJarIcon,
-  'dropper-bottle': DropperBottleIcon,
-  'liquor-bottle': LiquorBottleIcon,
-  'lotion-pump': LotionPumpIcon,
-  'mason-jar': MasonJarIcon,
-  'perfume-bottle': PerfumeBottleIcon,
-  'soda-can': SodaCanIcon,
-  'spray-bottle': SprayBottleIcon,
-  'vial': VialIcon,
-}
-
-// Combined icon map
+// Icon mapping - maps icon names to Tabler components
 export const ICON_MAP: Record<string, IconComponent> = {
-  ...LUCIDE_ICON_MAP,
-  ...CUSTOM_ICON_MAP,
+  // Bottles
+  'bottle': IconBottle,
+  'beer': IconBeer,
+  'baby-bottle': IconBabyBottle,
+  'vaccine-bottle': IconVaccineBottle,
+
+  // Glasses & Cups
+  'glass': IconGlass,
+  'glass-champagne': IconGlassChampagne,
+  'glass-cocktail': IconGlassCocktail,
+  'glass-full': IconGlassFull,
+  'glass-gin': IconGlassGin,
+  'cup': IconCup,
+  'mug': IconMug,
+  'coffee': IconCoffee,
+
+  // Containers & Jars
+  'container': IconContainer,
+  'tip-jar': IconTipJar,
+  'flask': IconFlask,
+  'flask-2': IconFlask2,
+
+  // Sprays & Cosmetics
+  'spray': IconSpray,
+  'perfume': IconPerfume,
+  'candle': IconCandle,
+
+  // Other
+  'droplet': IconDroplet,
+  'flame': IconFlame,
+  'sparkles': IconSparkles,
+  'gift': IconGift,
+  'shopping-bag': IconShoppingBag,
+  'palette': IconPalette,
+  'circle-dot': IconCircleDot,
+  'box': IconBox,
+  'package': IconPackage,
 }
 
 // Grouped icons for better UX in the picker
 export const ICON_GROUPS = {
-  'Bottles': ['beer-bottle', 'champagne-bottle', 'liquor-bottle', 'wine', 'beer', 'martini'],
-  'Jars & Containers': ['mason-jar', 'candle-jar', 'cosmetic-jar', 'flask-round', 'flask-conical', 'cylinder'],
-  'Cans & Sprays': ['soda-can', 'aerosol-can', 'spray-bottle', 'cup-soda'],
-  'Cosmetics & Dispensers': ['perfume-bottle', 'dropper-bottle', 'lotion-pump', 'vial'],
-  'Other': ['glass-water', 'coffee', 'milk', 'flame', 'sparkles', 'gift', 'shopping-bag', 'droplet', 'palette', 'box', 'package', 'circle-dot'],
+  'Bottles': ['bottle', 'beer', 'baby-bottle', 'vaccine-bottle'],
+  'Glasses & Cups': ['glass', 'glass-champagne', 'glass-cocktail', 'glass-full', 'glass-gin', 'cup', 'mug', 'coffee'],
+  'Containers & Jars': ['container', 'tip-jar', 'flask', 'flask-2'],
+  'Sprays & Cosmetics': ['spray', 'perfume', 'candle'],
+  'Other': ['droplet', 'flame', 'sparkles', 'gift', 'shopping-bag', 'palette', 'box', 'package', 'circle-dot'],
 }
 
 // Get icon component by name
 export function getIconComponent(iconName: string | null): IconComponent {
   if (!iconName || !ICON_MAP[iconName]) {
-    return CircleDot // Default icon
+    return IconCircleDot // Default icon
   }
   return ICON_MAP[iconName]
 }
@@ -124,7 +112,7 @@ export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerPro
     if (isOpen && buttonRef.current) {
       const buttonRect = buttonRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - buttonRect.bottom
-      const dropdownHeight = 280 // Approximate height of dropdown
+      const dropdownHeight = 320 // Approximate height of dropdown
 
       setOpenUpward(spaceBelow < dropdownHeight)
     }
@@ -145,7 +133,7 @@ export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerPro
         `}
         title="Choose icon"
       >
-        <SelectedIconComponent className={`w-5 h-5 ${selectedIcon ? 'text-gray-700' : 'text-gray-400'}`} />
+        <SelectedIconComponent className={`w-5 h-5 ${selectedIcon ? 'text-gray-700' : 'text-gray-400'}`} stroke={1.5} />
       </button>
 
       {isOpen && (
@@ -159,7 +147,7 @@ export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerPro
           {/* Dropdown - positioned upward or downward based on space */}
           <div
             ref={dropdownRef}
-            className={`absolute left-0 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64 ${
+            className={`absolute left-0 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-72 max-h-80 overflow-y-auto ${
               openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
             }`}
           >
@@ -192,7 +180,7 @@ export default function IconPicker({ selectedIcon, onSelectIcon }: IconPickerPro
                         `}
                         title={iconName.replace(/-/g, ' ')}
                       >
-                        <IconComponent className="w-5 h-5" />
+                        <IconComponent className="w-5 h-5" stroke={1.5} />
                       </button>
                     )
                   })}
