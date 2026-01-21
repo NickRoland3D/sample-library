@@ -7,6 +7,14 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 
+// Allowed email domains for registration
+const ALLOWED_DOMAINS = ['rolanddg.co.jp', 'rolanddga.com', 'rolanddg.com']
+
+function isAllowedEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase()
+  return domain ? ALLOWED_DOMAINS.includes(domain) : false
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -37,6 +45,11 @@ export default function LoginPage() {
         router.push('/')
         router.refresh()
       } else {
+        // Validate email domain for registration
+        if (!isAllowedEmail(email)) {
+          throw new Error('Registration is restricted to Roland employees. Please use your Roland email address.')
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
