@@ -32,6 +32,8 @@ export default function ManageProductTypesModal({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
+  const editRowRef = useRef<HTMLDivElement>(null)
+  const shouldSaveOnBlurRef = useRef(true)
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -179,8 +181,28 @@ export default function ManageProductTypesModal({
       e.preventDefault()
       saveEditing()
     } else if (e.key === 'Escape') {
+      shouldSaveOnBlurRef.current = false
       cancelEditing()
     }
+  }
+
+  const handleInputBlur = () => {
+    // Delay to allow clicks on icon picker to register
+    setTimeout(() => {
+      if (shouldSaveOnBlurRef.current && editingId) {
+        saveEditing()
+      }
+      shouldSaveOnBlurRef.current = true
+    }, 200)
+  }
+
+  const handleIconPickerClick = () => {
+    // Prevent blur from saving while interacting with icon picker
+    shouldSaveOnBlurRef.current = false
+    // Re-enable after a short delay
+    setTimeout(() => {
+      shouldSaveOnBlurRef.current = true
+    }, 300)
   }
 
   const handleDeleteType = async (id: string, name: string) => {
@@ -275,6 +297,7 @@ export default function ManageProductTypesModal({
                 return (
                   <div
                     key={type.id}
+                    ref={isEditing ? editRowRef : undefined}
                     className={`flex items-center gap-3 p-3 rounded-lg group transition-colors ${
                       isEditing
                         ? 'bg-primary-50 ring-2 ring-primary-200'
@@ -284,17 +307,19 @@ export default function ManageProductTypesModal({
                   >
                     {isEditing ? (
                       <>
-                        <IconPicker
-                          selectedIcon={editingIcon}
-                          onSelectIcon={setEditingIcon}
-                        />
+                        <div onMouseDown={handleIconPickerClick}>
+                          <IconPicker
+                            selectedIcon={editingIcon}
+                            onSelectIcon={setEditingIcon}
+                          />
+                        </div>
                         <input
                           ref={editInputRef}
                           type="text"
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
                           onKeyDown={handleEditKeyDown}
-                          onBlur={saveEditing}
+                          onBlur={handleInputBlur}
                           className="flex-1 px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           disabled={isSaving}
                         />
