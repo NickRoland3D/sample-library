@@ -40,7 +40,7 @@ export default function Modal({
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className={`relative bg-white rounded-3xl shadow-2xl ${sizes[size]} w-full animate-scale-in overflow-hidden`}
+          className={`relative bg-white rounded-3xl shadow-2xl ${sizes[size]} w-full animate-scale-in`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
