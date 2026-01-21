@@ -74,16 +74,13 @@ export async function PATCH(
     } = body
 
     // Build update object with only provided fields
-    const updateData: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    }
+    const updateData: Record<string, unknown> = {}
 
     if (name !== undefined) updateData.name = name
     if (product_type !== undefined) updateData.product_type = product_type
     if (notes !== undefined) updateData.notes = notes
     if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
     if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
-    if (difficulty !== undefined) updateData.difficulty = difficulty
 
     const { data: sample, error } = await supabase
       .from('samples')
