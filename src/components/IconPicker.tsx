@@ -9,8 +9,8 @@ import {
   GlassWater,
   Martini,
   Milk,
-  Flask,
   FlaskConical,
+  FlaskRound,
   Flame,
   Package,
   Box,
@@ -33,7 +33,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   'glass-water': GlassWater,
   martini: Martini,
   milk: Milk,
-  flask: Flask,
+  'flask-round': FlaskRound,
   'flask-conical': FlaskConical,
   flame: Flame,
   package: Package,
@@ -50,7 +50,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
 // Grouped icons for better UX in the picker
 export const ICON_GROUPS = {
   'Bottles & Glasses': ['wine', 'beer', 'martini', 'glass-water', 'cup-soda', 'coffee', 'milk'],
-  'Containers': ['flask', 'flask-conical', 'cylinder', 'box', 'package'],
+  'Containers': ['flask-round', 'flask-conical', 'cylinder', 'box', 'package'],
   'Other': ['flame', 'sparkles', 'gift', 'shopping-bag', 'droplet', 'palette', 'circle-dot'],
 }
 
