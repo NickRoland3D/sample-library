@@ -33,13 +33,13 @@ export default function LoginPage() {
     async function fetchSampleImages() {
       const { data: samples } = await supabase
         .from('samples')
-        .select('image_url')
-        .not('image_url', 'is', null)
+        .select('thumbnail_url')
+        .not('thumbnail_url', 'is', null)
         .limit(48)
 
       if (samples && samples.length > 0) {
         const images = samples
-          .map((s: { image_url: string | null }) => s.image_url)
+          .map((s: { thumbnail_url: string | null }) => s.thumbnail_url)
           .filter((url): url is string => url !== null)
         setGalleryImages(images)
       }
