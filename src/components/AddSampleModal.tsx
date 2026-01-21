@@ -145,9 +145,9 @@ export default function AddSampleModal({
     }
   }, [isOpen])
 
-  // Set default product type when modal opens or productTypes load
+  // Set default product type when modal opens
   useEffect(() => {
-    if (productTypes.length > 0 && !productType) {
+    if (isOpen && productTypes.length > 0) {
       // Use the provided default (current category) or fall back to first type
       if (defaultProductType && productTypes.some(pt => pt.id === defaultProductType)) {
         setProductType(defaultProductType)
@@ -155,7 +155,7 @@ export default function AddSampleModal({
         setProductType(productTypes[0].id)
       }
     }
-  }, [productTypes, productType, defaultProductType])
+  }, [isOpen, productTypes, defaultProductType])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
