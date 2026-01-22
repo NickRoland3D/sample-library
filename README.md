@@ -1,90 +1,107 @@
-# Sample Library
+# Roland Rotary Sample Gallery
 
-A professional web application for managing design sample files. Browse sample photos, filter by product type, and access design files stored in OneDrive.
+A professional internal web application for Roland DG employees to manage and browse rotary printing sample images. Features visual gallery browsing, search with hashtag support, automatic image processing, and OneDrive integration for design files.
 
-![Sample Library Screenshot](docs/screenshot.png)
+**Live URL:** https://rolandrotarysamples.vercel.app
+
+## Quick Start for Developers
+
+```bash
+# Clone and install
+git clone https://github.com/NickRoland3D/sample-library.git
+cd sample-library
+npm install
+
+# Set up environment (copy and fill in values)
+cp .env.example .env.local
+
+# Run development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Features
 
-- 📷 **Visual Gallery** - Browse samples with thumbnail previews
-- 🔍 **Search & Filter** - Find samples by name or product type
-- ☁️ **OneDrive Integration** - Design files automatically uploaded to OneDrive
-- 👥 **Team Access** - Individual user accounts with authentication
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+- **Visual Gallery** - Masonry grid layout with thumbnail previews
+- **Search & Filter** - Search by name, notes, or hashtags (e.g., `#glossy`)
+- **Hashtag Support** - Add tags like `#wine-red #2024` in notes for easy categorization
+- **Auto Image Processing** - Automatic background removal + whitespace normalization
+- **Email Domain Restriction** - Registration limited to Roland email domains
+- **Animated Login Page** - Dynamic background using actual gallery images
+- **OneDrive Integration** - Links to design files stored in OneDrive
+- **Responsive Design** - Works on desktop, tablet, and mobile
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, React, Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **File Storage**:
-  - Thumbnails: Supabase Storage
-  - Design Files: Microsoft OneDrive (via Graph API)
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 (App Router), React 18, TypeScript |
+| Styling | Tailwind CSS |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| Storage | Supabase Storage (thumbnails) |
+| Image Processing | Sharp (normalization) + Remove.bg API (background removal) |
+| Design Files | Microsoft OneDrive |
+| Deployment | Vercel |
 
-## Prerequisites
+## Documentation
 
-- Node.js 18+
-- A Supabase account (free tier works)
-- A Microsoft Azure account (for OneDrive integration)
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, data flow, and component structure |
+| [DEVELOPMENT.md](./docs/DEVELOPMENT.md) | Development workflow, coding standards, testing |
+| [API.md](./docs/API.md) | API endpoint documentation |
+| [DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Deployment and environment setup |
 
-## Setup Guide
+## Project Structure
 
-### 1. Clone and Install
-
-```bash
-git clone <your-repo-url>
-cd sample-library
-npm install
+```
+sample-library/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── api/               # API Routes
+│   │   │   ├── samples/       # CRUD for samples
+│   │   │   ├── product-types/ # Product type management
+│   │   │   └── admin/         # Admin endpoints
+│   │   ├── admin/             # Admin pages
+│   │   ├── login/             # Auth pages
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Main gallery page
+│   ├── components/            # React components
+│   │   ├── ui/               # Reusable UI primitives
+│   │   └── *.tsx             # Feature components
+│   ├── lib/                   # Utility libraries
+│   │   ├── supabase/         # Supabase client setup
+│   │   ├── microsoft/        # OneDrive integration
+│   │   ├── imageProcessing.ts # Image processing pipeline
+│   │   └── hashtags.ts       # Hashtag utilities
+│   └── types/                 # TypeScript types
+├── supabase/
+│   └── schema.sql            # Database schema
+├── public/                    # Static assets
+│   ├── rolandhybrid.svg      # Roland logo (white)
+│   └── roland.svg            # Roland logo (color)
+├── docs/                      # Documentation
+└── .env.example              # Environment template
 ```
 
-### 2. Set Up Supabase
+## Environment Variables
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run the contents of `supabase/schema.sql`
-3. Go to **Storage** and create a bucket called `thumbnails` (make it public)
-4. Go to **Settings > API** and copy your:
-   - Project URL
-   - Anon public key
-   - Service role key (keep this secret!)
-
-### 3. Set Up Microsoft Azure (OneDrive)
-
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to **Azure Active Directory > App registrations**
-3. Click **New registration**:
-   - Name: "Sample Library"
-   - Supported account types: Choose based on your org
-   - Redirect URI: Leave blank for now
-4. After creation, note down:
-   - Application (client) ID
-   - Directory (tenant) ID
-5. Go to **Certificates & secrets** > **New client secret**
-   - Create and copy the secret value immediately
-6. Go to **API permissions** > **Add a permission**:
-   - Microsoft Graph > Application permissions
-   - Add: `Files.ReadWrite.All`
-   - Click **Grant admin consent**
-
-### 4. Configure Environment Variables
-
-Copy the example env file:
-
-```bash
-cp .env.local.example .env.local
-```
-
-Fill in your values:
+Copy `.env.example` to `.env.local` and fill in:
 
 ```env
-# Supabase
+# Supabase (Required)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 
-# Microsoft Azure
+# Remove.bg API (Optional - for auto background removal)
+REMOVE_BG_API_KEY=your_api_key
+
+# Microsoft Azure (Optional - for OneDrive)
 MICROSOFT_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-MICROSOFT_CLIENT_SECRET=your-secret-value
+MICROSOFT_CLIENT_SECRET=your-secret
 MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ONEDRIVE_FOLDER_PATH=/SampleLibrary
 
@@ -92,118 +109,61 @@ ONEDRIVE_FOLDER_PATH=/SampleLibrary
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 5. Run the Development Server
+## Key Features Explained
 
-```bash
-npm run dev
-```
+### Hashtag System
+Users can add hashtags in sample notes (e.g., `Beautiful glossy finish #wine #red #glossy`).
+- Hashtags are displayed as styled badges in the detail view
+- Search supports hashtag filtering: type `#glossy` to find all samples with that tag
+- Supports alphanumeric tags with hyphens: `#wine-red`, `#2024-collection`
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+### Image Processing Pipeline
+When uploading images, the system automatically:
+1. **Checks for white background** - Samples corners/edges (85% white threshold)
+2. **Removes background if needed** - Uses Remove.bg API (skipped if already white to save credits)
+3. **Normalizes whitespace** - Trims edges, adds consistent 10% padding, makes square
 
-### 6. Create Your First User
+### Email Domain Restriction
+Registration is restricted to Roland email domains:
+- `@rolanddg.co.jp`
+- `@rolanddga.com`
+- `@rolanddg.com`
 
-1. Go to [http://localhost:3000/login](http://localhost:3000/login)
-2. Click "Sign up" and create an account
-3. Check your email for the confirmation link
-4. Sign in and start adding samples!
+## Common Tasks
 
-## Deployment
+### Add a New Product Type
+1. Go to Supabase Dashboard → Table Editor → `product_types`
+2. Insert new row with `name` field
 
-### Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Import the project in [Vercel](https://vercel.com)
-3. Add all environment variables in the Vercel dashboard
-4. Deploy!
-
-### Other Platforms
-
-The app can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- Render
-- Self-hosted with `npm run build && npm start`
-
-## Adding Product Types
-
-Product types are stored in the database. To add new types:
-
-1. Go to your Supabase dashboard
-2. Open the **Table Editor**
-3. Select the `product_types` table
-4. Insert a new row with just the `name` field
-
-Or run SQL:
-
+Or via SQL:
 ```sql
 INSERT INTO product_types (name) VALUES ('New Type Name');
 ```
 
-## Project Structure
+### Reprocess Existing Images
+Visit `/admin/reprocess` to trigger reprocessing of all existing sample images through the image processing pipeline.
 
-```
-sample-library/
-├── src/
-│   ├── app/                 # Next.js app router pages
-│   │   ├── api/            # API routes
-│   │   ├── login/          # Login page
-│   │   └── page.tsx        # Main gallery page
-│   ├── components/         # React components
-│   │   ├── ui/            # Reusable UI components
-│   │   └── ...            # Feature components
-│   ├── lib/               # Utility libraries
-│   │   ├── supabase/      # Supabase client setup
-│   │   └── microsoft/     # Microsoft Graph API
-│   └── types/             # TypeScript types
-├── supabase/
-│   └── schema.sql         # Database schema
-└── public/                # Static assets
-```
-
-## Customization
-
-### Changing the Theme
-
-Edit `tailwind.config.ts` to customize colors:
-
-```ts
-theme: {
-  extend: {
-    colors: {
-      primary: {
-        // Your custom color palette
-        500: '#your-color',
-        600: '#your-darker-color',
-        // ...
-      },
-    },
-  },
-},
-```
-
-### Adding New Fields
-
-1. Update the database schema in Supabase
+### Add a New Field to Samples
+1. Update schema in Supabase (add column)
 2. Update `src/types/database.ts`
-3. Update the relevant components and API routes
+3. Update relevant components and API routes
 
 ## Troubleshooting
 
-### "Unauthorized" errors
-- Check that your Supabase keys are correct
-- Make sure the user is logged in
-- Verify RLS policies are set up correctly
+| Issue | Solution |
+|-------|----------|
+| "Unauthorized" errors | Check Supabase keys, verify user is logged in |
+| Images not loading | Verify `thumbnails` bucket is public in Supabase |
+| Background removal not working | Check `REMOVE_BG_API_KEY` is set in Vercel |
+| Login background blank | No samples in database yet (it uses actual gallery images) |
 
-### OneDrive upload fails
-- Verify Azure app has `Files.ReadWrite.All` permission
-- Check that admin consent was granted
-- Verify the client secret hasn't expired
+## Contributing
 
-### Images not loading
-- Check that the `thumbnails` bucket exists in Supabase
-- Verify the bucket is public or has proper policies
-- Check the `images.remotePatterns` in `next.config.js`
+1. Create a feature branch from `main`
+2. Make changes with clear commit messages
+3. Run `npm run build` to verify no errors
+4. Push and create a PR
 
 ## License
 
-MIT
+Internal Roland DG project - Not for public distribution
