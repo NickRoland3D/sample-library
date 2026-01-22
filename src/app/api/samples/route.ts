@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { processImage } from '@/lib/imageProcessing'
 
 // Use service role for API routes
 const supabase = createClient(
@@ -60,15 +61,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload sample photo to Supabase storage
-    const photoExt = samplePhoto.name.split('.').pop()
-    const photoPath = `samples/${user.id}/${Date.now()}.${photoExt}`
-    const photoBuffer = Buffer.from(await samplePhoto.arrayBuffer())
+    // Process the image (background removal if needed + whitespace normalization)
+    const rawBuffer = Buffer.from(await samplePhoto.arrayBuffer())
+
+    console.log('Processing uploaded image...')
+    const { buffer: processedBuffer, wasBackgroundRemoved } = await processImage(rawBuffer)
+    console.log(`Image processing complete. Background removed: ${wasBackgroundRemoved}`)
+
+    // Upload processed photo to Supabase storage (always save as JPEG after processing)
+    const photoPath = `samples/${user.id}/${Date.now()}.jpg`
 
     const { error: uploadError } = await supabase.storage
       .from('thumbnails')
-      .upload(photoPath, photoBuffer, {
-        contentType: samplePhoto.type,
+      .upload(photoPath, processedBuffer, {
+        contentType: 'image/jpeg',
       })
 
     if (uploadError) {
