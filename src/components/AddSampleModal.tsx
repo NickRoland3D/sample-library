@@ -377,8 +377,11 @@ export default function AddSampleModal({
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 resize-none"
-                  placeholder="Any additional notes..."
+                  placeholder="Add notes... Use #tags for easy searching (e.g. #glossy #wine-red #2024)"
                 />
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Tip: Use #hashtags to organize and find samples easily
+                </p>
               </div>
 
               {/* Actions */}

@@ -122,13 +122,30 @@ export default function HomePage() {
     return counts
   }, [samples])
 
+  // Extract hashtags from a string
+  const extractHashtags = (text: string | null | undefined): string[] => {
+    if (!text) return []
+    const matches = text.match(/#[\w-]+/g)
+    return matches ? matches.map(tag => tag.toLowerCase()) : []
+  }
+
   // Filter samples
   const filteredSamples = useMemo(() => {
     return samples.filter((sample) => {
+      const query = searchQuery.toLowerCase().trim()
+
+      // Check if searching for a hashtag
+      if (query.startsWith('#')) {
+        const searchTag = query
+        const sampleTags = extractHashtags(sample.notes)
+        return sampleTags.some(tag => tag.includes(searchTag))
+      }
+
+      // Regular search - includes name, notes, and hashtags
       const matchesSearch =
         !searchQuery ||
-        sample.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sample.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+        sample.name.toLowerCase().includes(query) ||
+        sample.notes?.toLowerCase().includes(query)
 
       const matchesType = !selectedType || sample.product_type === selectedType
 

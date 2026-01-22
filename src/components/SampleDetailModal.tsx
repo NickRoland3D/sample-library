@@ -19,6 +19,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { Sample, ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
+import { parseTextWithHashtags } from '@/lib/hashtags'
 
 // Compress and resize image to reduce file size
 const compressImage = (file: File, maxSize = 1200, quality = 0.8): Promise<File> => {
@@ -405,10 +406,13 @@ export default function SampleDetailModal({
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Add any notes about this sample..."
+                  placeholder="Add notes... Use #tags for easy searching (e.g. #glossy #wine-red #2024)"
                   rows={3}
                   className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 resize-none"
                 />
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Tip: Use #hashtags to organize and find samples easily
+                </p>
               </div>
 
               {/* Action Buttons */}
@@ -491,7 +495,18 @@ export default function SampleDetailModal({
                 <div className="pt-5 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes</h4>
                   <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">
-                    {sample.notes}
+                    {parseTextWithHashtags(sample.notes).map((segment, index) => (
+                      segment.type === 'hashtag' ? (
+                        <span
+                          key={index}
+                          className="inline-block px-2 py-0.5 bg-primary-50 text-primary-600 rounded-md font-medium text-xs mx-0.5"
+                        >
+                          {segment.content}
+                        </span>
+                      ) : (
+                        <span key={index}>{segment.content}</span>
+                      )
+                    ))}
                   </p>
                 </div>
               )}
