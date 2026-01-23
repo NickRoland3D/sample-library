@@ -70,6 +70,7 @@ export async function PATCH(
     let notes: string | undefined
     let print_time_minutes: number | null | undefined
     let ink_usage_ml: number | null | undefined
+    let onedrive_folder_url: string | null | undefined
     let samplePhoto: File | null = null
 
     if (contentType.includes('multipart/form-data')) {
@@ -81,9 +82,11 @@ export async function PATCH(
 
       const printTimeStr = formData.get('print_time_minutes') as string | null
       const inkUsageStr = formData.get('ink_usage_ml') as string | null
+      const onedriveUrlStr = formData.get('onedrive_folder_url') as string | null
 
       print_time_minutes = printTimeStr ? parseInt(printTimeStr) : null
       ink_usage_ml = inkUsageStr ? parseFloat(inkUsageStr) : null
+      onedrive_folder_url = onedriveUrlStr || null
 
       samplePhoto = formData.get('samplePhoto') as File | null
     } else {
@@ -94,6 +97,7 @@ export async function PATCH(
       notes = body.notes
       print_time_minutes = body.print_time_minutes
       ink_usage_ml = body.ink_usage_ml
+      onedrive_folder_url = body.onedrive_folder_url
     }
 
     // Build update object
@@ -104,6 +108,7 @@ export async function PATCH(
     if (notes !== undefined) updateData.notes = notes
     if (print_time_minutes !== undefined) updateData.print_time_minutes = print_time_minutes
     if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
+    if (onedrive_folder_url !== undefined) updateData.onedrive_folder_url = onedrive_folder_url
 
     // Handle image upload if provided
     if (samplePhoto && samplePhoto.size > 0) {

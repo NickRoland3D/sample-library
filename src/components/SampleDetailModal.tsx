@@ -113,6 +113,7 @@ export default function SampleDetailModal({
   const [editNotes, setEditNotes] = useState('')
   const [editPrintTime, setEditPrintTime] = useState('')
   const [editInkUsage, setEditInkUsage] = useState('')
+  const [editOneDriveUrl, setEditOneDriveUrl] = useState('')
   const [newImage, setNewImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
@@ -124,6 +125,7 @@ export default function SampleDetailModal({
       setEditNotes(sample.notes || '')
       setEditPrintTime(sample.print_time_minutes?.toString() || '')
       setEditInkUsage(sample.ink_usage_ml?.toString() || '')
+      setEditOneDriveUrl(sample.onedrive_folder_url || '')
       setNewImage(null)
       setImagePreview(null)
       setIsEditing(false)
@@ -183,6 +185,7 @@ export default function SampleDetailModal({
         formData.append('notes', editNotes.trim() || '')
         if (editPrintTime) formData.append('print_time_minutes', editPrintTime)
         if (editInkUsage) formData.append('ink_usage_ml', editInkUsage)
+        if (editOneDriveUrl.trim()) formData.append('onedrive_folder_url', editOneDriveUrl.trim())
         formData.append('samplePhoto', compressedImage)
 
         const response = await fetch(`/api/samples/${sample.id}`, {
@@ -210,6 +213,7 @@ export default function SampleDetailModal({
             notes: editNotes.trim() || null,
             print_time_minutes: editPrintTime ? parseInt(editPrintTime) : null,
             ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
+            onedrive_folder_url: editOneDriveUrl.trim() || null,
           }),
         })
 
@@ -415,6 +419,22 @@ export default function SampleDetailModal({
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  OneDrive Folder URL
+                </label>
+                <input
+                  type="url"
+                  value={editOneDriveUrl}
+                  onChange={(e) => setEditOneDriveUrl(e.target.value)}
+                  placeholder="https://onedrive.com/..."
+                  className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                />
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Link to the OneDrive folder containing design files
+                </p>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-6">
                 <button
@@ -438,6 +458,7 @@ export default function SampleDetailModal({
                     setEditNotes(sample.notes || '')
                     setEditPrintTime(sample.print_time_minutes?.toString() || '')
                     setEditInkUsage(sample.ink_usage_ml?.toString() || '')
+                    setEditOneDriveUrl(sample.onedrive_folder_url || '')
                     handleRemoveNewImage()
                   }}
                   className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"
