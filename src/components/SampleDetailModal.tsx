@@ -298,6 +298,24 @@ export default function SampleDetailModal({
     onClose()
   }
 
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen || !onNavigate || samples.length <= 1) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditing) return // Don't navigate while editing
+
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        onNavigate(samples[currentIndex - 1])
+      } else if (e.key === 'ArrowRight' && currentIndex < samples.length - 1) {
+        onNavigate(samples[currentIndex + 1])
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onNavigate, samples, currentIndex, isEditing])
+
   const getProductTypeName = (id: string) => {
     return productTypes.find(pt => pt.id === id)?.name || id
   }
@@ -352,34 +370,6 @@ export default function SampleDetailModal({
               alt={sample.name}
               className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
             />
-          )}
-
-          {/* Navigation Buttons */}
-          {samples.length > 1 && onNavigate && (
-            <>
-              <button
-                onClick={handlePrevious}
-                disabled={!hasPrevious}
-                className={`absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-lg transition-all ${
-                  hasPrevious
-                    ? 'hover:bg-white hover:scale-110 text-gray-700'
-                    : 'opacity-30 cursor-not-allowed text-gray-400'
-                }`}
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={handleNext}
-                disabled={!hasNext}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-lg transition-all ${
-                  hasNext
-                    ? 'hover:bg-white hover:scale-110 text-gray-700'
-                    : 'opacity-30 cursor-not-allowed text-gray-400'
-                }`}
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
           )}
         </div>
 
@@ -635,6 +625,34 @@ export default function SampleDetailModal({
           )}
         </div>
       </div>
+
+      {/* Navigation Buttons - Outside modal content */}
+      {samples.length > 1 && onNavigate && !isEditing && (
+        <>
+          <button
+            onClick={handlePrevious}
+            disabled={!hasPrevious}
+            className={`fixed left-4 md:left-8 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white shadow-xl transition-all z-10 ${
+              hasPrevious
+                ? 'hover:bg-gray-50 hover:scale-110 text-gray-700'
+                : 'opacity-30 cursor-not-allowed text-gray-400'
+            }`}
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={!hasNext}
+            className={`fixed right-4 md:right-8 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white shadow-xl transition-all z-10 ${
+              hasNext
+                ? 'hover:bg-gray-50 hover:scale-110 text-gray-700'
+                : 'opacity-30 cursor-not-allowed text-gray-400'
+            }`}
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
     </Modal>
   )
 }
