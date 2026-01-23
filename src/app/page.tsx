@@ -275,6 +275,8 @@ export default function HomePage() {
         productTypes={productTypes}
         onSampleUpdate={handleSampleUpdate}
         onSampleDelete={handleSampleDelete}
+        samples={filteredSamples}
+        onNavigate={setSelectedSample}
       />
 
       <AddSampleModal

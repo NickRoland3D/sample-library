@@ -13,6 +13,8 @@ import {
   Save,
   Upload,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -91,6 +93,8 @@ interface SampleDetailModalProps {
   productTypes: ProductType[]
   onSampleUpdate: () => void
   onSampleDelete: (id: string) => void
+  samples?: Sample[]
+  onNavigate?: (sample: Sample) => void
 }
 
 export default function SampleDetailModal({
@@ -100,6 +104,8 @@ export default function SampleDetailModal({
   productTypes,
   onSampleUpdate,
   onSampleDelete,
+  samples = [],
+  onNavigate,
 }: SampleDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -147,6 +153,23 @@ export default function SampleDetailModal({
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
+    }
+  }
+
+  // Navigation logic
+  const currentIndex = sample ? samples.findIndex(s => s.id === sample.id) : -1
+  const hasPrevious = currentIndex > 0
+  const hasNext = currentIndex < samples.length - 1 && currentIndex !== -1
+
+  const handlePrevious = () => {
+    if (hasPrevious && onNavigate) {
+      onNavigate(samples[currentIndex - 1])
+    }
+  }
+
+  const handleNext = () => {
+    if (hasNext && onNavigate) {
+      onNavigate(samples[currentIndex + 1])
     }
   }
 
@@ -285,7 +308,7 @@ export default function SampleDetailModal({
     <Modal isOpen={isOpen} onClose={handleClose} title="" size="xl">
       <div className="flex flex-col md:flex-row max-h-[85vh]">
         {/* Image Section */}
-        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6 md:p-8">
+        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6 md:p-8 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none relative">
           {isEditing ? (
             <div className="relative w-full h-full flex items-center justify-center">
               {imagePreview ? (
@@ -329,6 +352,34 @@ export default function SampleDetailModal({
               alt={sample.name}
               className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
             />
+          )}
+
+          {/* Navigation Buttons */}
+          {samples.length > 1 && onNavigate && (
+            <>
+              <button
+                onClick={handlePrevious}
+                disabled={!hasPrevious}
+                className={`absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-lg transition-all ${
+                  hasPrevious
+                    ? 'hover:bg-white hover:scale-110 text-gray-700'
+                    : 'opacity-30 cursor-not-allowed text-gray-400'
+                }`}
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!hasNext}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-lg transition-all ${
+                  hasNext
+                    ? 'hover:bg-white hover:scale-110 text-gray-700'
+                    : 'opacity-30 cursor-not-allowed text-gray-400'
+                }`}
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
           )}
         </div>
 
