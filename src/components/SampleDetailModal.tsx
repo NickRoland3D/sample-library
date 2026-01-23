@@ -173,6 +173,24 @@ export default function SampleDetailModal({
     }
   }
 
+  // Keyboard navigation - must be before early return to maintain hooks order
+  useEffect(() => {
+    if (!isOpen || !onNavigate || samples.length <= 1 || !sample) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditing) return // Don't navigate while editing
+
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        onNavigate(samples[currentIndex - 1])
+      } else if (e.key === 'ArrowRight' && currentIndex < samples.length - 1) {
+        onNavigate(samples[currentIndex + 1])
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onNavigate, samples, currentIndex, isEditing, sample])
+
   if (!sample) return null
 
   const handleCopyLink = async () => {
@@ -297,24 +315,6 @@ export default function SampleDetailModal({
     setError(null)
     onClose()
   }
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen || !onNavigate || samples.length <= 1) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditing) return // Don't navigate while editing
-
-      if (e.key === 'ArrowLeft' && currentIndex > 0) {
-        onNavigate(samples[currentIndex - 1])
-      } else if (e.key === 'ArrowRight' && currentIndex < samples.length - 1) {
-        onNavigate(samples[currentIndex + 1])
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onNavigate, samples, currentIndex, isEditing])
 
   const getProductTypeName = (id: string) => {
     return productTypes.find(pt => pt.id === id)?.name || id
