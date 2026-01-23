@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
     const notes = formData.get('notes') as string
     const onedriveFolderUrl = formData.get('onedriveFolderUrl') as string
     const samplePhoto = formData.get('samplePhoto') as File
+    const printTimeMinutes = formData.get('printTimeMinutes') as string | null
+    const inkUsageMl = formData.get('inkUsageMl') as string | null
 
     if (!name || !productType || !samplePhoto || !onedriveFolderUrl) {
       return NextResponse.json(
@@ -98,6 +100,8 @@ export async function POST(request: NextRequest) {
         onedrive_folder_url: onedriveFolderUrl,
         onedrive_folder_id: 'manual', // Placeholder for manual links
         uploaded_by: user.id,
+        print_time_minutes: printTimeMinutes ? parseFloat(printTimeMinutes) : null,
+        ink_usage_ml: inkUsageMl ? parseFloat(inkUsageMl) : null,
       })
       .select()
       .single()

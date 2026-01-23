@@ -252,7 +252,7 @@ export default function SampleDetailModal({
             name: editName.trim(),
             product_type: editProductType,
             notes: editNotes.trim() || null,
-            print_time_minutes: editPrintTime ? parseInt(editPrintTime) : null,
+            print_time_minutes: editPrintTime ? parseFloat(editPrintTime) : null,
             ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
             onedrive_folder_url: editOneDriveUrl.trim() || null,
           }),
@@ -423,9 +423,11 @@ export default function SampleDetailModal({
                   </label>
                   <input
                     type="number"
+                    step="0.1"
+                    min="0"
                     value={editPrintTime}
                     onChange={(e) => setEditPrintTime(e.target.value)}
-                    placeholder="45"
+                    placeholder="0.5"
                     className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
@@ -581,7 +583,9 @@ export default function SampleDetailModal({
                       <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl text-center">
                         <Clock className="w-5 h-5 text-primary-500 mx-auto mb-2" />
                         <p className="text-sm font-bold text-gray-900">
-                          {sample.print_time_minutes} min
+                          {sample.print_time_minutes < 1
+                            ? `${Math.round(sample.print_time_minutes * 60)} sec`
+                            : `${sample.print_time_minutes} min`}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">Print Time</p>
                       </div>

@@ -346,9 +346,11 @@ export default function AddSampleModal({
                   </label>
                   <input
                     type="number"
+                    step="0.1"
+                    min="0"
                     value={printTime}
                     onChange={(e) => setPrintTime(e.target.value)}
-                    placeholder="45"
+                    placeholder="0.5"
                     className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:bg-white focus:ring-2 focus:ring-gray-200 focus:outline-none transition-all text-gray-900 placeholder:text-gray-400"
                   />
                 </div>

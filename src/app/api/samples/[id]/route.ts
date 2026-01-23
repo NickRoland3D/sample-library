@@ -84,7 +84,7 @@ export async function PATCH(
       const inkUsageStr = formData.get('ink_usage_ml') as string | null
       const onedriveUrlStr = formData.get('onedrive_folder_url') as string | null
 
-      print_time_minutes = printTimeStr ? parseInt(printTimeStr) : null
+      print_time_minutes = printTimeStr ? parseFloat(printTimeStr) : null
       ink_usage_ml = inkUsageStr ? parseFloat(inkUsageStr) : null
       onedrive_folder_url = onedriveUrlStr || null
 
