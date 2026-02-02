@@ -138,11 +138,11 @@ export default function MasonryGrid({
           >
             <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               {/* Image with fixed aspect ratio */}
-              <div className="relative aspect-[4/5] flex items-center justify-center">
+              <div className="relative aspect-[4/5] overflow-hidden">
                 <img
                   src={sample.thumbnail_url}
                   alt={sample.name}
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
                 {/* Overlay on hover */}
