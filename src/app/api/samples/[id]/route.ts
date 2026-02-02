@@ -75,6 +75,7 @@ export async function PATCH(
     let samplePhoto: File | null = null
     let galleryImages: File[] = []
     let gallery_image_urls: string[] | undefined
+    let newTitleUrl: string | null = null
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData (with image)
@@ -93,6 +94,7 @@ export async function PATCH(
 
       samplePhoto = formData.get('samplePhoto') as File | null
       galleryImages = formData.getAll('galleryImages') as File[]
+      newTitleUrl = formData.get('newTitleUrl') as string | null
 
       const galleryUrlsJson = formData.get('gallery_image_urls') as string | null
       if (galleryUrlsJson) {
@@ -120,7 +122,12 @@ export async function PATCH(
     if (ink_usage_ml !== undefined) updateData.ink_usage_ml = ink_usage_ml
     if (onedrive_folder_url !== undefined) updateData.onedrive_folder_url = onedrive_folder_url
 
-    // Handle image upload if provided
+    // Handle title swap to an existing gallery image (no reprocessing needed)
+    if (newTitleUrl) {
+      updateData.thumbnail_url = newTitleUrl
+    }
+
+    // Handle image upload if provided (new file as title)
     if (samplePhoto && samplePhoto.size > 0) {
       // Get the current sample to delete old image
       const { data: currentSample } = await supabase
@@ -170,15 +177,21 @@ export async function PATCH(
     // Handle gallery images
     // If gallery_image_urls is provided, it represents the desired final list (for reorder/remove)
     if (gallery_image_urls !== undefined) {
-      // Get current gallery URLs to find removed ones
+      // Get current gallery URLs and thumbnail to find truly removed ones
       const { data: currentSample } = await supabase
         .from('samples')
-        .select('gallery_image_urls')
+        .select('gallery_image_urls, thumbnail_url')
         .eq('id', id)
         .single()
 
       const currentUrls: string[] = currentSample?.gallery_image_urls || []
-      const removedUrls = currentUrls.filter(url => !gallery_image_urls!.includes(url))
+      // Don't delete URLs that are being reassigned (e.g. gallery→title or title→gallery)
+      const preserveUrls = new Set<string>()
+      if (newTitleUrl) preserveUrls.add(newTitleUrl) // gallery image becoming title
+      if (currentSample?.thumbnail_url && gallery_image_urls.includes(currentSample.thumbnail_url)) {
+        preserveUrls.add(currentSample.thumbnail_url) // old title moving to gallery
+      }
+      const removedUrls = currentUrls.filter(url => !gallery_image_urls!.includes(url) && !preserveUrls.has(url))
 
       // Delete removed gallery images from storage
       for (const removedUrl of removedUrls) {
