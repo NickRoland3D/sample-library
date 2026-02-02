@@ -6,13 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { AlertCircle } from 'lucide-react'
-
-// Allowed email domains for registration
-const ALLOWED_DOMAINS = ['rolanddg.co.jp', 'rolanddga.com', 'rolanddg.com']
+import { ALLOWED_EMAIL_DOMAINS } from '@/lib/constants'
 
 function isAllowedEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase()
-  return domain ? ALLOWED_DOMAINS.includes(domain) : false
+  return domain ? ALLOWED_EMAIL_DOMAINS.includes(domain) : false
 }
 
 export default function LoginPage() {

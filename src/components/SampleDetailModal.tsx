@@ -22,69 +22,7 @@ import Input from '@/components/ui/Input'
 import { Sample, ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { parseTextWithHashtags } from '@/lib/hashtags'
-
-// Compress and resize image to reduce file size
-const compressImage = (file: File, maxSize = 1200, quality = 0.8): Promise<File> => {
-  return new Promise((resolve, reject) => {
-    // If file is already small enough (under 1MB), just return it
-    if (file.size < 1024 * 1024) {
-      resolve(file)
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
-
-        // Scale down if larger than maxSize
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = (height / width) * maxSize
-            width = maxSize
-          } else {
-            width = (width / height) * maxSize
-            height = maxSize
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'))
-          return
-        }
-
-        ctx.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Failed to compress image'))
-              return
-            }
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            })
-            resolve(compressedFile)
-          },
-          'image/jpeg',
-          quality
-        )
-      }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
-}
+import { compressImage } from '@/lib/imageCompression'
 
 interface SampleDetailModalProps {
   sample: Sample | null
@@ -122,6 +60,10 @@ export default function SampleDetailModal({
   const [editOneDriveUrl, setEditOneDriveUrl] = useState('')
   const [newImage, setNewImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0) // 0 = title image
+  const [newGalleryImages, setNewGalleryImages] = useState<File[]>([])
+  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([])
+  const [editGalleryUrls, setEditGalleryUrls] = useState<string[]>([])
 
   // Reset form when sample changes
   useEffect(() => {
@@ -134,6 +76,10 @@ export default function SampleDetailModal({
       setEditOneDriveUrl(sample.onedrive_folder_url || '')
       setNewImage(null)
       setImagePreview(null)
+      setActiveImageIndex(0)
+      setNewGalleryImages([])
+      setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
+      setEditGalleryUrls(sample.gallery_image_urls || [])
       setIsEditing(false)
       setError(null)
     }
@@ -154,6 +100,24 @@ export default function SampleDetailModal({
       URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
     }
+  }
+
+  const handleAddGalleryImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setNewGalleryImages(prev => [...prev, ...files])
+    const previews = files.map(f => URL.createObjectURL(f))
+    setNewGalleryPreviews(prev => [...prev, ...previews])
+  }
+
+  const handleRemoveExistingGalleryImage = (index: number) => {
+    setEditGalleryUrls(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleRemoveNewGalleryImage = (index: number) => {
+    URL.revokeObjectURL(newGalleryPreviews[index])
+    setNewGalleryImages(prev => prev.filter((_, i) => i !== index))
+    setNewGalleryPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   // Navigation logic
@@ -215,11 +179,9 @@ export default function SampleDetailModal({
 
       if (!session) throw new Error('Not authenticated')
 
-      // Use FormData if we have a new image, otherwise JSON
-      if (newImage) {
-        // Compress image before upload
-        const compressedImage = await compressImage(newImage)
+      const hasNewFiles = newImage || newGalleryImages.length > 0
 
+      if (hasNewFiles) {
         const formData = new FormData()
         formData.append('name', editName.trim())
         formData.append('product_type', editProductType)
@@ -227,7 +189,20 @@ export default function SampleDetailModal({
         if (editPrintTime) formData.append('print_time_minutes', editPrintTime)
         if (editInkUsage) formData.append('ink_usage_ml', editInkUsage)
         if (editOneDriveUrl.trim()) formData.append('onedrive_folder_url', editOneDriveUrl.trim())
-        formData.append('samplePhoto', compressedImage)
+
+        if (newImage) {
+          const compressedImage = await compressImage(newImage)
+          formData.append('samplePhoto', compressedImage)
+        }
+
+        // Send current gallery URLs (handles removals)
+        formData.append('gallery_image_urls', JSON.stringify(editGalleryUrls))
+
+        // Compress and append new gallery images
+        for (const galleryFile of newGalleryImages) {
+          const compressed = await compressImage(galleryFile)
+          formData.append('galleryImages', compressed)
+        }
 
         const response = await fetch(`/api/samples/${sample.id}`, {
           method: 'PATCH',
@@ -255,6 +230,7 @@ export default function SampleDetailModal({
             print_time_minutes: editPrintTime ? parseFloat(editPrintTime) : null,
             ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
             onedrive_folder_url: editOneDriveUrl.trim() || null,
+            gallery_image_urls: editGalleryUrls,
           }),
         })
 
@@ -267,6 +243,9 @@ export default function SampleDetailModal({
       setIsEditing(false)
       setNewImage(null)
       setImagePreview(null)
+      setNewGalleryImages([])
+      setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
+      setActiveImageIndex(0)
       onSampleUpdate()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update sample')
@@ -326,7 +305,7 @@ export default function SampleDetailModal({
     <Modal isOpen={isOpen} onClose={handleClose} title="" size="xl">
       <div className="flex flex-col md:flex-row max-h-[85vh]">
         {/* Image Section */}
-        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6 md:p-8 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none relative">
+        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6 md:p-8 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none relative">
           {isEditing ? (
             <div className="relative w-full h-full flex items-center justify-center">
               {imagePreview ? (
@@ -365,11 +344,39 @@ export default function SampleDetailModal({
               )}
             </div>
           ) : (
-            <img
-              src={sample.thumbnail_url}
-              alt={sample.name}
-              className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
-            />
+            <>
+              {/* Main display image */}
+              {(() => {
+                const allImages = [sample.thumbnail_url, ...(sample.gallery_image_urls || [])]
+                const displayUrl = allImages[activeImageIndex] || sample.thumbnail_url
+                return (
+                  <img
+                    src={displayUrl}
+                    alt={sample.name}
+                    className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
+                  />
+                )
+              })()}
+
+              {/* Gallery thumbnails */}
+              {(sample.gallery_image_urls?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-2 mt-4">
+                  {[sample.thumbnail_url, ...(sample.gallery_image_urls || [])].map((url, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                        activeImageIndex === idx
+                          ? 'border-primary-500 ring-2 ring-primary-200'
+                          : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -478,6 +485,52 @@ export default function SampleDetailModal({
                 </p>
               </div>
 
+              {/* Gallery Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Images
+                </label>
+                {(editGalleryUrls.length > 0 || newGalleryPreviews.length > 0) && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {editGalleryUrls.map((url, index) => (
+                      <div key={`existing-${index}`} className="relative w-16 h-16">
+                        <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingGalleryImage(index)}
+                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {newGalleryPreviews.map((preview, index) => (
+                      <div key={`new-${index}`} className="relative w-16 h-16">
+                        <img src={preview} alt={`New ${index + 1}`} className="w-full h-full object-cover rounded-lg border-2 border-primary-300" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewGalleryImage(index)}
+                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors text-sm text-gray-600">
+                  <Upload className="w-4 h-4" />
+                  Add images
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAddGalleryImages}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-6">
                 <button
@@ -502,6 +555,9 @@ export default function SampleDetailModal({
                     setEditPrintTime(sample.print_time_minutes?.toString() || '')
                     setEditInkUsage(sample.ink_usage_ml?.toString() || '')
                     setEditOneDriveUrl(sample.onedrive_folder_url || '')
+                    setEditGalleryUrls(sample.gallery_image_urls || [])
+                    setNewGalleryImages([])
+                    setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
                     handleRemoveNewImage()
                   }}
                   className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"

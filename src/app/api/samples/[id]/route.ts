@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { processImage } from '@/lib/imageProcessing'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +73,8 @@ export async function PATCH(
     let ink_usage_ml: number | null | undefined
     let onedrive_folder_url: string | null | undefined
     let samplePhoto: File | null = null
+    let galleryImages: File[] = []
+    let gallery_image_urls: string[] | undefined
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData (with image)
@@ -89,6 +92,12 @@ export async function PATCH(
       onedrive_folder_url = onedriveUrlStr || null
 
       samplePhoto = formData.get('samplePhoto') as File | null
+      galleryImages = formData.getAll('galleryImages') as File[]
+
+      const galleryUrlsJson = formData.get('gallery_image_urls') as string | null
+      if (galleryUrlsJson) {
+        gallery_image_urls = JSON.parse(galleryUrlsJson)
+      }
     } else {
       // Handle JSON
       const body = await request.json()
@@ -98,6 +107,7 @@ export async function PATCH(
       print_time_minutes = body.print_time_minutes
       ink_usage_ml = body.ink_usage_ml
       onedrive_folder_url = body.onedrive_folder_url
+      gallery_image_urls = body.gallery_image_urls
     }
 
     // Build update object
@@ -121,25 +131,27 @@ export async function PATCH(
 
       // Delete old thumbnail if it exists
       if (currentSample?.thumbnail_url) {
-        const url = new URL(currentSample.thumbnail_url)
-        const pathParts = url.pathname.split('/thumbnails/')
+        const oldUrl = new URL(currentSample.thumbnail_url)
+        const pathParts = oldUrl.pathname.split('/thumbnails/')
         if (pathParts.length > 1) {
           const storagePath = pathParts[1]
           await supabase.storage.from('thumbnails').remove([storagePath])
         }
       }
 
-      // Upload new image
-      const fileExt = samplePhoto.name.split('.').pop() || 'jpg'
-      const fileName = `${id}-${Date.now()}.${fileExt}`
-      const arrayBuffer = await samplePhoto.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
+      // Process image (background removal if needed + whitespace normalization)
+      const rawBuffer = Buffer.from(await samplePhoto.arrayBuffer())
+      console.log('Processing updated image...')
+      const { buffer: processedBuffer, wasBackgroundRemoved } = await processImage(rawBuffer)
+      console.log(`Image processing complete. Background removed: ${wasBackgroundRemoved}`)
+
+      // Upload processed image
+      const photoPath = `samples/${user.id}/${Date.now()}.jpg`
 
       const { error: uploadError } = await supabase.storage
         .from('thumbnails')
-        .upload(fileName, buffer, {
-          contentType: samplePhoto.type,
-          upsert: true,
+        .upload(photoPath, processedBuffer, {
+          contentType: 'image/jpeg',
         })
 
       if (uploadError) {
@@ -150,9 +162,79 @@ export async function PATCH(
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('thumbnails')
-        .getPublicUrl(fileName)
+        .getPublicUrl(photoPath)
 
       updateData.thumbnail_url = publicUrl
+    }
+
+    // Handle gallery images
+    // If gallery_image_urls is provided, it represents the desired final list (for reorder/remove)
+    if (gallery_image_urls !== undefined) {
+      // Get current gallery URLs to find removed ones
+      const { data: currentSample } = await supabase
+        .from('samples')
+        .select('gallery_image_urls')
+        .eq('id', id)
+        .single()
+
+      const currentUrls: string[] = currentSample?.gallery_image_urls || []
+      const removedUrls = currentUrls.filter(url => !gallery_image_urls!.includes(url))
+
+      // Delete removed gallery images from storage
+      for (const removedUrl of removedUrls) {
+        try {
+          const urlObj = new URL(removedUrl)
+          const pathParts = urlObj.pathname.split('/thumbnails/')
+          if (pathParts.length > 1) {
+            await supabase.storage.from('thumbnails').remove([pathParts[1]])
+          }
+        } catch (e) {
+          console.error('Error deleting gallery image:', e)
+        }
+      }
+
+      updateData.gallery_image_urls = gallery_image_urls
+    }
+
+    // Upload new gallery images if provided
+    if (galleryImages.length > 0) {
+      // Start with current gallery URLs (or the just-set ones)
+      let currentGalleryUrls: string[] = (updateData.gallery_image_urls as string[]) || []
+      if (!updateData.gallery_image_urls) {
+        const { data: currentSample } = await supabase
+          .from('samples')
+          .select('gallery_image_urls')
+          .eq('id', id)
+          .single()
+        currentGalleryUrls = currentSample?.gallery_image_urls || []
+      }
+
+      for (let i = 0; i < galleryImages.length; i++) {
+        const galleryFile = galleryImages[i]
+        if (!galleryFile || galleryFile.size === 0) continue
+
+        const galleryBuffer = Buffer.from(await galleryFile.arrayBuffer())
+        const galleryPath = `samples/${user.id}/gallery/${Date.now()}-${i}.jpg`
+
+        const { error: galleryUploadError } = await supabase.storage
+          .from('thumbnails')
+          .upload(galleryPath, galleryBuffer, {
+            contentType: galleryFile.type || 'image/jpeg',
+          })
+
+        if (galleryUploadError) {
+          console.error(`Gallery image ${i} upload error:`, galleryUploadError)
+          continue
+        }
+
+        const { data: { publicUrl: galleryPublicUrl } } = supabase.storage
+          .from('thumbnails')
+          .getPublicUrl(galleryPath)
+
+        currentGalleryUrls.push(galleryPublicUrl)
+      }
+
+      updateData.gallery_image_urls = currentGalleryUrls
     }
 
     // Only update if there's something to update
@@ -210,10 +292,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get the sample first to get the thumbnail path
+    // Get the sample first to get the thumbnail path and gallery images
     const { data: sample, error: fetchError } = await supabase
       .from('samples')
-      .select('thumbnail_url')
+      .select('thumbnail_url, gallery_image_urls')
       .eq('id', id)
       .single()
 
@@ -231,6 +313,21 @@ export async function DELETE(
       if (pathParts.length > 1) {
         const storagePath = pathParts[1]
         await supabase.storage.from('thumbnails').remove([storagePath])
+      }
+    }
+
+    // Delete gallery images from storage
+    if (sample?.gallery_image_urls?.length) {
+      for (const galleryUrl of sample.gallery_image_urls) {
+        try {
+          const urlObj = new URL(galleryUrl)
+          const pathParts = urlObj.pathname.split('/thumbnails/')
+          if (pathParts.length > 1) {
+            await supabase.storage.from('thumbnails').remove([pathParts[1]])
+          }
+        } catch (e) {
+          console.error('Error deleting gallery image:', e)
+        }
       }
     }
 

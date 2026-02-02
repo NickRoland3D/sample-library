@@ -7,69 +7,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
-
-// Compress and resize image to reduce file size
-const compressImage = (file: File, maxSize = 1200, quality = 0.8): Promise<File> => {
-  return new Promise((resolve, reject) => {
-    // If file is already small enough (under 1MB), just return it
-    if (file.size < 1024 * 1024) {
-      resolve(file)
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
-
-        // Scale down if larger than maxSize
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = (height / width) * maxSize
-            width = maxSize
-          } else {
-            width = (width / height) * maxSize
-            height = maxSize
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'))
-          return
-        }
-
-        ctx.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Failed to compress image'))
-              return
-            }
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            })
-            resolve(compressedFile)
-          },
-          'image/jpeg',
-          quality
-        )
-      }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
-}
+import { compressImage } from '@/lib/imageCompression'
 
 interface AddSampleModalProps {
   isOpen: boolean
@@ -111,7 +49,8 @@ export default function AddSampleModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [printTime, setPrintTime] = useState('')
   const [inkUsage, setInkUsage] = useState('')
-
+  const [galleryPhotos, setGalleryPhotos] = useState<File[]>([])
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
   // Handle prefilled image from drag-and-drop
   useEffect(() => {
@@ -136,6 +75,8 @@ export default function AddSampleModal({
         setImagePreview(null)
         setPrintTime('')
         setInkUsage('')
+        setGalleryPhotos([])
+        setGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
         setError(null)
         setUploadProgress({ step: '', progress: 0 })
       }, 300)
@@ -171,6 +112,20 @@ export default function AddSampleModal({
     }
   }
 
+  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setGalleryPhotos(prev => [...prev, ...files])
+    const newPreviews = files.map(f => URL.createObjectURL(f))
+    setGalleryPreviews(prev => [...prev, ...newPreviews])
+  }
+
+  const handleRemoveGalleryImage = (index: number) => {
+    URL.revokeObjectURL(galleryPreviews[index])
+    setGalleryPhotos(prev => prev.filter((_, i) => i !== index))
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -202,6 +157,12 @@ export default function AddSampleModal({
       formData.append('samplePhoto', compressedPhoto)
       if (printTime) formData.append('printTimeMinutes', printTime)
       if (inkUsage) formData.append('inkUsageMl', inkUsage)
+
+      // Compress and append gallery images
+      for (const galleryFile of galleryPhotos) {
+        const compressed = await compressImage(galleryFile)
+        formData.append('galleryImages', compressed)
+      }
 
       setUploadProgress({ step: 'Uploading sample photo...', progress: 50 })
 
@@ -383,6 +344,47 @@ export default function AddSampleModal({
                 />
                 <p className="mt-1.5 text-xs text-gray-400">
                   Tip: Use #hashtags to organize and find samples easily
+                </p>
+              </div>
+
+              {/* Additional Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Images
+                </label>
+                {galleryPreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {galleryPreviews.map((preview, index) => (
+                      <div key={index} className="relative w-16 h-16">
+                        <img
+                          src={preview}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(index)}
+                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors text-sm text-gray-600">
+                  <Upload className="w-4 h-4" />
+                  Add more images
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleGalleryImagesChange}
+                    className="hidden"
+                  />
+                </label>
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Optional angle shots or detail photos
                 </p>
               </div>
 

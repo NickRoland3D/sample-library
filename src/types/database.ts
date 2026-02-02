@@ -26,6 +26,7 @@ export interface Database {
           print_time_minutes: number | null
           ink_usage_ml: number | null
           difficulty: DifficultyLevel | null
+          gallery_image_urls: string[]
         }
         Insert: {
           id?: string
@@ -41,6 +42,7 @@ export interface Database {
           print_time_minutes?: number | null
           ink_usage_ml?: number | null
           difficulty?: DifficultyLevel | null
+          gallery_image_urls?: string[]
         }
         Update: {
           id?: string
@@ -56,6 +58,7 @@ export interface Database {
           print_time_minutes?: number | null
           ink_usage_ml?: number | null
           difficulty?: DifficultyLevel | null
+          gallery_image_urls?: string[]
         }
       }
       product_types: {

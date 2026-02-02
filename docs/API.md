@@ -76,6 +76,9 @@ Create a new sample with image upload and automatic processing.
 | `notes` | string | No | Notes with optional #hashtags |
 | `onedriveFolderUrl` | string | Yes | Link to OneDrive folder |
 | `samplePhoto` | File | Yes | Image file (JPEG, PNG, etc.) |
+| `printTimeMinutes` | string | No | Print time in minutes |
+| `inkUsageMl` | string | No | Ink usage in ml |
+| `galleryImages` | File[] | No | Additional angle/detail images |
 
 **Example (JavaScript)**:
 ```typescript
@@ -157,20 +160,31 @@ Update an existing sample.
 
 **Authentication**: Required (must be sample owner)
 
-**Content-Type**: `application/json`
+**Content-Type**: `application/json` or `multipart/form-data` (when uploading images)
 
 **URL Parameters**:
 - `id`: Sample UUID
 
 **Request Body** (all fields optional):
+
+JSON body:
 ```json
 {
   "name": "Updated Name",
   "product_type": "Updated Type",
   "notes": "Updated notes #newtag",
-  "onedrive_folder_url": "https://new-url.com"
+  "onedrive_folder_url": "https://new-url.com",
+  "gallery_image_urls": ["https://..."]
 }
 ```
+
+FormData body (when uploading new images):
+- `samplePhoto` (File, optional): New title image (runs through image processing pipeline)
+- `galleryImages` (File[], optional): New additional images to append
+- `gallery_image_urls` (JSON string, optional): Current gallery URLs array (for reorder/remove)
+
+**Image Processing**:
+When a new `samplePhoto` is uploaded via PATCH, it goes through the same processing pipeline as POST (white detection, background removal, normalization).
 
 **Success Response** (`200`):
 ```json

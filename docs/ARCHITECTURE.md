@@ -54,9 +54,9 @@ The authentication is handled by Supabase Auth:
 - **Session**: Stored in cookies, validated by middleware on each request
 - **Domain Restriction**: Enforced client-side in `/src/app/login/page.tsx`
 
-Allowed domains (defined in `login/page.tsx`):
+Allowed domains (defined in `src/lib/constants.ts`):
 ```typescript
-const ALLOWED_DOMAINS = ['rolanddg.co.jp', 'rolanddga.com', 'rolanddg.com']
+export const ALLOWED_EMAIL_DOMAINS = ['rolanddg.co.jp', 'rolanddga.com', 'rolanddg.com']
 ```
 
 ### 2. Sample Upload Flow
@@ -210,7 +210,8 @@ samples
 ├── uploaded_by (UUID, FK → profiles)
 ├── print_time_minutes (INT, nullable)
 ├── ink_usage_ml (INT, nullable)
-└── difficulty (ENUM, nullable)
+├── difficulty (ENUM, nullable)
+└── gallery_image_urls (TEXT[], default '{}')
 ```
 
 ### Row Level Security (RLS)

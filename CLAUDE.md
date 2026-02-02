@@ -43,7 +43,9 @@ src/
 │   └── TopBar.tsx            # Header with user info
 ├── lib/                      # Utilities
 │   ├── supabase/             # Supabase client setup (client.ts, server.ts, middleware.ts)
-│   ├── imageProcessing.ts    # Remove.bg + Sharp pipeline
+│   ├── imageProcessing.ts    # Remove.bg + Sharp pipeline (server-side)
+│   ├── imageCompression.ts   # Client-side image compression utility
+│   ├── constants.ts          # Shared constants (allowed email domains, etc.)
 │   ├── hashtags.ts           # Hashtag extraction utilities
 │   └── microsoft/graph.ts    # OneDrive integration
 └── types/database.ts         # TypeScript types for Supabase tables
@@ -58,6 +60,7 @@ src/
 5. **Email Domain Restriction** - Only @rolanddg.co.jp, @rolanddga.com, @rolanddg.com can register
 6. **Animated Login** - Background uses actual gallery thumbnails
 7. **Admin Reprocess** - /admin/reprocess page to reprocess all existing images
+8. **Gallery Images** - Multiple images per sample (title image + additional angle shots)
 
 ## Database Schema (Supabase)
 
@@ -74,6 +77,7 @@ samples (
   print_time_minutes INT,
   ink_usage_ml INT,
   difficulty ENUM('Easy', 'Medium', 'Hard'),
+  gallery_image_urls TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 )
@@ -113,6 +117,8 @@ git push origin main # Deploy (auto-deploys via Vercel)
 | `src/lib/hashtags.ts` | extractHashtags(), parseTextWithHashtags() |
 | `src/components/SampleDetailModal.tsx` | View/edit sample with hashtag badges |
 | `src/components/AddSampleModal.tsx` | Upload form |
+| `src/lib/imageCompression.ts` | Client-side image compression |
+| `src/lib/constants.ts` | Shared constants (email domains) |
 | `src/app/api/samples/route.ts` | POST handler with image processing |
 
 ## Documentation
@@ -130,6 +136,10 @@ Detailed docs are in the `/docs` folder:
 3. Implemented image processing pipeline (Remove.bg + Sharp whitespace normalization)
 4. Added hashtag support in notes field with search filtering
 5. Created comprehensive documentation
+6. Extracted `compressImage()` to shared `src/lib/imageCompression.ts`
+7. Added image processing pipeline to PATCH route (was missing)
+8. Extracted allowed email domains to `src/lib/constants.ts`
+9. Added gallery images support (multiple images per sample)
 
 ## Common Tasks
 

@@ -89,6 +89,35 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabase.storage.from('thumbnails').getPublicUrl(photoPath)
 
+    // Handle gallery images (additional angle shots)
+    const galleryImageUrls: string[] = []
+    const galleryImages = formData.getAll('galleryImages') as File[]
+
+    for (let i = 0; i < galleryImages.length; i++) {
+      const galleryFile = galleryImages[i]
+      if (!galleryFile || galleryFile.size === 0) continue
+
+      const galleryBuffer = Buffer.from(await galleryFile.arrayBuffer())
+      const galleryPath = `samples/${user.id}/gallery/${Date.now()}-${i}.jpg`
+
+      const { error: galleryUploadError } = await supabase.storage
+        .from('thumbnails')
+        .upload(galleryPath, galleryBuffer, {
+          contentType: galleryFile.type || 'image/jpeg',
+        })
+
+      if (galleryUploadError) {
+        console.error(`Gallery image ${i} upload error:`, galleryUploadError)
+        continue
+      }
+
+      const { data: { publicUrl: galleryPublicUrl } } = supabase.storage
+        .from('thumbnails')
+        .getPublicUrl(galleryPath)
+
+      galleryImageUrls.push(galleryPublicUrl)
+    }
+
     // Create sample record
     const { data: sample, error: insertError } = await supabase
       .from('samples')
@@ -102,6 +131,7 @@ export async function POST(request: NextRequest) {
         uploaded_by: user.id,
         print_time_minutes: printTimeMinutes ? parseFloat(printTimeMinutes) : null,
         ink_usage_ml: inkUsageMl ? parseFloat(inkUsageMl) : null,
+        gallery_image_urls: galleryImageUrls,
       })
       .select()
       .single()
