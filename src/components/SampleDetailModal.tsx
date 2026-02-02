@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Copy,
   Check,
@@ -13,6 +13,7 @@ import {
   Save,
   Upload,
   X,
+  Star,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -24,6 +25,8 @@ import { createClient } from '@/lib/supabase/client'
 import { parseTextWithHashtags } from '@/lib/hashtags'
 import { compressImage } from '@/lib/imageCompression'
 
+const MAX_IMAGES = 6
+
 interface SampleDetailModalProps {
   sample: Sample | null
   isOpen: boolean
@@ -34,6 +37,11 @@ interface SampleDetailModalProps {
   samples?: Sample[]
   onNavigate?: (sample: Sample) => void
 }
+
+// Represents one image in the unified edit pool
+type EditImage =
+  | { type: 'existing'; url: string }
+  | { type: 'new'; file: File; previewUrl: string }
 
 export default function SampleDetailModal({
   sample,
@@ -58,12 +66,20 @@ export default function SampleDetailModal({
   const [editPrintTime, setEditPrintTime] = useState('')
   const [editInkUsage, setEditInkUsage] = useState('')
   const [editOneDriveUrl, setEditOneDriveUrl] = useState('')
-  const [newImage, setNewImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [activeImageIndex, setActiveImageIndex] = useState(0) // 0 = title image
-  const [newGalleryImages, setNewGalleryImages] = useState<File[]>([])
-  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([])
-  const [editGalleryUrls, setEditGalleryUrls] = useState<string[]>([])
+
+  // Unified image pool for edit mode
+  const [editImages, setEditImages] = useState<EditImage[]>([])
+  const [editTitleIndex, setEditTitleIndex] = useState(0)
+  const [editPreviewIndex, setEditPreviewIndex] = useState(0)
+
+  // View mode state
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+
+  // Helper toast state
+  const [showTitleHint, setShowTitleHint] = useState(false)
+
+  // Drag state for edit mode
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Reset form when sample changes
   useEffect(() => {
@@ -74,51 +90,108 @@ export default function SampleDetailModal({
       setEditPrintTime(sample.print_time_minutes?.toString() || '')
       setEditInkUsage(sample.ink_usage_ml?.toString() || '')
       setEditOneDriveUrl(sample.onedrive_folder_url || '')
-      setNewImage(null)
-      setImagePreview(null)
       setActiveImageIndex(0)
-      setNewGalleryImages([])
-      setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
-      setEditGalleryUrls(sample.gallery_image_urls || [])
       setIsEditing(false)
       setError(null)
+      // Build unified image pool from existing data
+      const pool: EditImage[] = [
+        { type: 'existing', url: sample.thumbnail_url },
+        ...(sample.gallery_image_urls || []).map(url => ({ type: 'existing' as const, url })),
+      ]
+      setEditImages(pool)
+      setEditTitleIndex(0)
+      setEditPreviewIndex(0)
     }
   }, [sample])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setNewImage(file)
-      const url = URL.createObjectURL(file)
-      setImagePreview(url)
+  // Clean up preview URLs when edit images change
+  useEffect(() => {
+    return () => {
+      editImages.forEach(img => {
+        if (img.type === 'new') URL.revokeObjectURL(img.previewUrl)
+      })
     }
+  }, []) // only on unmount
+
+  // Show hint briefly when multiple images or title changes
+  const prevEditCount = useRef(0)
+  useEffect(() => {
+    if (editImages.length >= 2 && prevEditCount.current < 2) {
+      setShowTitleHint(true)
+      const timer = setTimeout(() => setShowTitleHint(false), 3000)
+      return () => clearTimeout(timer)
+    }
+    prevEditCount.current = editImages.length
+  }, [editImages.length])
+
+  useEffect(() => {
+    if (editImages.length >= 2) {
+      setShowTitleHint(true)
+      const timer = setTimeout(() => setShowTitleHint(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [editTitleIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getImageUrl = (img: EditImage) =>
+    img.type === 'existing' ? img.url : img.previewUrl
+
+  const addFiles = useCallback((files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'))
+    if (imageFiles.length === 0) return
+    setEditImages(prev => {
+      const remaining = MAX_IMAGES - prev.length
+      if (remaining <= 0) return prev
+      const toAdd = imageFiles.slice(0, remaining)
+      const newItems: EditImage[] = toAdd.map(f => ({
+        type: 'new',
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+      }))
+      return [...prev, ...newItems]
+    })
+  }, [])
+
+  const handleRemoveEditImage = (index: number) => {
+    const img = editImages[index]
+    if (img.type === 'new') URL.revokeObjectURL(img.previewUrl)
+    setEditImages(prev => prev.filter((_, i) => i !== index))
+    setEditTitleIndex(prev => {
+      if (index === prev) return 0
+      if (index < prev) return prev - 1
+      return prev
+    })
+    setEditPreviewIndex(prev => {
+      if (index === prev) return 0
+      if (index < prev) return prev - 1
+      return prev
+    })
   }
 
-  const handleRemoveNewImage = () => {
-    setNewImage(null)
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
-      setImagePreview(null)
-    }
-  }
-
-  const handleAddGalleryImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    setNewGalleryImages(prev => [...prev, ...files])
-    const previews = files.map(f => URL.createObjectURL(f))
-    setNewGalleryPreviews(prev => [...prev, ...previews])
+    addFiles(files)
+    e.target.value = ''
   }
 
-  const handleRemoveExistingGalleryImage = (index: number) => {
-    setEditGalleryUrls(prev => prev.filter((_, i) => i !== index))
-  }
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
 
-  const handleRemoveNewGalleryImage = (index: number) => {
-    URL.revokeObjectURL(newGalleryPreviews[index])
-    setNewGalleryImages(prev => prev.filter((_, i) => i !== index))
-    setNewGalleryPreviews(prev => prev.filter((_, i) => i !== index))
-  }
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDropEdit = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    addFiles(files)
+  }, [addFiles])
 
   // Navigation logic
   const currentIndex = sample ? samples.findIndex(s => s.id === sample.id) : -1
@@ -137,12 +210,12 @@ export default function SampleDetailModal({
     }
   }
 
-  // Keyboard navigation - must be before early return to maintain hooks order
+  // Keyboard navigation
   useEffect(() => {
     if (!isOpen || !onNavigate || samples.length <= 1 || !sample) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditing) return // Don't navigate while editing
+      if (isEditing) return
 
       if (e.key === 'ArrowLeft' && currentIndex > 0) {
         onNavigate(samples[currentIndex - 1])
@@ -170,6 +243,11 @@ export default function SampleDetailModal({
       return
     }
 
+    if (editImages.length === 0) {
+      setError('At least one image is required')
+      return
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -179,9 +257,14 @@ export default function SampleDetailModal({
 
       if (!session) throw new Error('Not authenticated')
 
-      const hasNewFiles = newImage || newGalleryImages.length > 0
+      const titleImg = editImages[editTitleIndex]
+      const galleryImgs = editImages.filter((_, i) => i !== editTitleIndex)
 
-      if (hasNewFiles) {
+      // Determine if we need FormData (new files present, or title changed to a new file)
+      const hasNewFiles = editImages.some(img => img.type === 'new')
+      const titleChanged = titleImg.type === 'new' || (titleImg.type === 'existing' && titleImg.url !== sample.thumbnail_url)
+
+      if (hasNewFiles || titleChanged) {
         const formData = new FormData()
         formData.append('name', editName.trim())
         formData.append('product_type', editProductType)
@@ -190,18 +273,27 @@ export default function SampleDetailModal({
         if (editInkUsage) formData.append('ink_usage_ml', editInkUsage)
         if (editOneDriveUrl.trim()) formData.append('onedrive_folder_url', editOneDriveUrl.trim())
 
-        if (newImage) {
-          const compressedImage = await compressImage(newImage)
-          formData.append('samplePhoto', compressedImage)
+        // Title image
+        if (titleImg.type === 'new') {
+          const compressed = await compressImage(titleImg.file)
+          formData.append('samplePhoto', compressed)
+        } else if (titleImg.url !== sample.thumbnail_url) {
+          // Title changed to an existing gallery image - tell API via special field
+          formData.append('newTitleUrl', titleImg.url)
         }
 
-        // Send current gallery URLs (handles removals)
-        formData.append('gallery_image_urls', JSON.stringify(editGalleryUrls))
+        // Gallery: existing URLs (excluding the one that became title)
+        const existingGalleryUrls = galleryImgs
+          .filter(img => img.type === 'existing')
+          .map(img => (img as { type: 'existing'; url: string }).url)
+        formData.append('gallery_image_urls', JSON.stringify(existingGalleryUrls))
 
-        // Compress and append new gallery images
-        for (const galleryFile of newGalleryImages) {
-          const compressed = await compressImage(galleryFile)
-          formData.append('galleryImages', compressed)
+        // Gallery: new files
+        for (const img of galleryImgs) {
+          if (img.type === 'new') {
+            const compressed = await compressImage(img.file)
+            formData.append('galleryImages', compressed)
+          }
         }
 
         const response = await fetch(`/api/samples/${sample.id}`, {
@@ -217,6 +309,11 @@ export default function SampleDetailModal({
           throw new Error(data.error || 'Failed to update sample')
         }
       } else {
+        // No new files, no title change — JSON update
+        const existingGalleryUrls = galleryImgs
+          .filter(img => img.type === 'existing')
+          .map(img => (img as { type: 'existing'; url: string }).url)
+
         const response = await fetch(`/api/samples/${sample.id}`, {
           method: 'PATCH',
           headers: {
@@ -230,7 +327,7 @@ export default function SampleDetailModal({
             print_time_minutes: editPrintTime ? parseFloat(editPrintTime) : null,
             ink_usage_ml: editInkUsage ? parseFloat(editInkUsage) : null,
             onedrive_folder_url: editOneDriveUrl.trim() || null,
-            gallery_image_urls: editGalleryUrls,
+            gallery_image_urls: existingGalleryUrls,
           }),
         })
 
@@ -241,10 +338,6 @@ export default function SampleDetailModal({
       }
 
       setIsEditing(false)
-      setNewImage(null)
-      setImagePreview(null)
-      setNewGalleryImages([])
-      setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
       setActiveImageIndex(0)
       onSampleUpdate()
     } catch (err) {
@@ -295,6 +388,40 @@ export default function SampleDetailModal({
     onClose()
   }
 
+  const handleStartEdit = () => {
+    // Rebuild pool from current sample data
+    const pool: EditImage[] = [
+      { type: 'existing', url: sample.thumbnail_url },
+      ...(sample.gallery_image_urls || []).map(url => ({ type: 'existing' as const, url })),
+    ]
+    setEditImages(pool)
+    setEditTitleIndex(0)
+    setEditPreviewIndex(0)
+    setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditName(sample.name)
+    setEditProductType(sample.product_type)
+    setEditNotes(sample.notes || '')
+    setEditPrintTime(sample.print_time_minutes?.toString() || '')
+    setEditInkUsage(sample.ink_usage_ml?.toString() || '')
+    setEditOneDriveUrl(sample.onedrive_folder_url || '')
+    // Clean up new file previews
+    editImages.forEach(img => {
+      if (img.type === 'new') URL.revokeObjectURL(img.previewUrl)
+    })
+    const pool: EditImage[] = [
+      { type: 'existing', url: sample.thumbnail_url },
+      ...(sample.gallery_image_urls || []).map(url => ({ type: 'existing' as const, url })),
+    ]
+    setEditImages(pool)
+    setEditTitleIndex(0)
+    setEditPreviewIndex(0)
+    setError(null)
+  }
+
   const getProductTypeName = (id: string) => {
     return productTypes.find(pt => pt.id === id)?.name || id
   }
@@ -305,43 +432,107 @@ export default function SampleDetailModal({
     <Modal isOpen={isOpen} onClose={handleClose} title="" size="xl">
       <div className="flex flex-col md:flex-row max-h-[85vh]">
         {/* Image Section */}
-        <div className="md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6 md:p-8 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none relative">
+        <div
+          className={`md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6 md:p-8 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none relative transition-colors ${
+            isEditing && isDragOver ? 'from-primary-50 to-primary-100 ring-2 ring-inset ring-primary-300' : ''
+          }`}
+          onDragOver={isEditing ? handleDragOver : undefined}
+          onDragLeave={isEditing ? handleDragLeave : undefined}
+          onDrop={isEditing ? handleDropEdit : undefined}
+        >
           {isEditing ? (
-            <div className="relative w-full h-full flex items-center justify-center">
-              {imagePreview ? (
-                <div className="relative">
+            <div className="w-full flex flex-col items-center">
+              {/* Large preview */}
+              {editImages.length > 0 ? (
+                <div className="relative mb-4">
                   <img
-                    src={imagePreview}
-                    alt="New preview"
-                    className="max-w-full max-h-[400px] md:max-h-[500px] object-contain rounded-2xl shadow-lg"
+                    src={getImageUrl(editImages[editPreviewIndex])}
+                    alt="Preview"
+                    className="max-w-full max-h-[300px] md:max-h-[400px] object-contain rounded-2xl shadow-lg"
                   />
+                  {/* Star toggle on main image */}
                   <button
-                    onClick={handleRemoveNewImage}
-                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    type="button"
+                    onClick={() => setEditTitleIndex(editPreviewIndex)}
+                    className={`absolute top-2 right-2 p-1.5 rounded-full transition-all shadow-md ${
+                      editPreviewIndex === editTitleIndex
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-white/90 text-gray-400 hover:text-primary-500 hover:bg-white'
+                    }`}
+                    title={editPreviewIndex === editTitleIndex ? 'This is the title image' : 'Set as title image'}
                   >
-                    <X className="w-4 h-4" />
+                    <Star className={`w-4 h-4 ${editPreviewIndex === editTitleIndex ? 'fill-white' : ''}`} />
                   </button>
+                  {/* Title badge helper — fades in/out */}
+                  {editImages.length > 1 && (
+                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium shadow-sm transition-opacity duration-500 ${
+                      showTitleHint ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    } ${
+                      editPreviewIndex === editTitleIndex
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-white/90 text-gray-500'
+                    }`}>
+                      {editPreviewIndex === editTitleIndex ? '★ Title Image' : 'Click ★ to set as title'}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="relative w-full">
-                  <img
-                    src={sample.thumbnail_url}
-                    alt={sample.name}
-                    className="max-w-full max-h-[350px] md:max-h-[450px] object-contain rounded-2xl shadow-lg mx-auto opacity-75"
-                  />
-                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer bg-black/40 rounded-2xl hover:bg-black/50 transition-colors">
-                    <Upload className="w-10 h-10 text-white mb-2" />
-                    <span className="text-white font-medium">Change Image</span>
-                    <span className="text-white/70 text-sm mt-1">Click to upload new photo</span>
+                <div className="flex flex-col items-center justify-center w-full min-h-[200px] mb-4">
+                  <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                  <span className="text-sm font-medium text-gray-600">
+                    {isDragOver ? 'Drop images here!' : 'Drag & drop images here'}
+                  </span>
+                </div>
+              )}
+
+              {/* Thumbnail strip */}
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                {editImages.map((img, index) => (
+                  <div
+                    key={index}
+                    className={`relative w-14 h-14 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                      index === editPreviewIndex
+                        ? 'border-gray-800 ring-2 ring-gray-300'
+                        : 'border-transparent hover:border-gray-300'
+                    }`}
+                    onClick={() => setEditPreviewIndex(index)}
+                  >
+                    <img
+                      src={getImageUrl(img)}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {index === editTitleIndex && (
+                      <div className="absolute top-0.5 left-0.5 p-0.5 bg-primary-500 rounded-full">
+                        <Star className="w-2.5 h-2.5 text-white fill-white" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleRemoveEditImage(index) }}
+                      className="absolute top-0.5 right-0.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+                {editImages.length < MAX_IMAGES && (
+                  <label className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-gray-50 transition-colors">
+                    <span className="text-gray-400 text-xl font-light">+</span>
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={handleImageChange}
+                      multiple
+                      onChange={handleEditFileInput}
                       className="hidden"
                     />
                   </label>
-                </div>
-              )}
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {editImages.length}/{MAX_IMAGES} images
+                {editImages.length > 1 && ' · The ★ title image gets background processing'}
+              </p>
             </div>
           ) : (
             <>
@@ -485,52 +676,6 @@ export default function SampleDetailModal({
                 </p>
               </div>
 
-              {/* Gallery Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Images
-                </label>
-                {(editGalleryUrls.length > 0 || newGalleryPreviews.length > 0) && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {editGalleryUrls.map((url, index) => (
-                      <div key={`existing-${index}`} className="relative w-16 h-16">
-                        <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveExistingGalleryImage(index)}
-                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {newGalleryPreviews.map((preview, index) => (
-                      <div key={`new-${index}`} className="relative w-16 h-16">
-                        <img src={preview} alt={`New ${index + 1}`} className="w-full h-full object-cover rounded-lg border-2 border-primary-300" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveNewGalleryImage(index)}
-                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors text-sm text-gray-600">
-                  <Upload className="w-4 h-4" />
-                  Add images
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleAddGalleryImages}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
               {/* Action Buttons */}
               <div className="flex gap-3 pt-6">
                 <button
@@ -546,20 +691,7 @@ export default function SampleDetailModal({
                   Save Changes
                 </button>
                 <button
-                  onClick={() => {
-                    setIsEditing(false)
-                    // Reset to original values
-                    setEditName(sample.name)
-                    setEditProductType(sample.product_type)
-                    setEditNotes(sample.notes || '')
-                    setEditPrintTime(sample.print_time_minutes?.toString() || '')
-                    setEditInkUsage(sample.ink_usage_ml?.toString() || '')
-                    setEditOneDriveUrl(sample.onedrive_folder_url || '')
-                    setEditGalleryUrls(sample.gallery_image_urls || [])
-                    setNewGalleryImages([])
-                    setNewGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
-                    handleRemoveNewImage()
-                  }}
+                  onClick={handleCancelEdit}
                   className="px-6 py-3 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-all"
                 >
                   Cancel
@@ -662,7 +794,7 @@ export default function SampleDetailModal({
               {/* Action Buttons */}
               <div className="flex gap-3 pt-5 border-t border-gray-100">
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={handleStartEdit}
                   className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -686,7 +818,7 @@ export default function SampleDetailModal({
         </div>
       </div>
 
-      {/* Navigation Buttons - Outside modal content */}
+      {/* Navigation Buttons */}
       {samples.length > 1 && onNavigate && !isEditing && (
         <>
           <button

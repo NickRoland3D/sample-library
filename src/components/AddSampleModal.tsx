@@ -1,20 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Loader2, Link as LinkIcon, Upload, X } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { AlertCircle, CheckCircle, Loader2, Link as LinkIcon, Upload, X, Star } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 import { ProductType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage } from '@/lib/imageCompression'
+
+const MAX_IMAGES = 6
 
 interface AddSampleModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
   productTypes: ProductType[]
-  prefilledImage?: File | null
+  prefilledImages?: File[]
   defaultProductType?: string | null
 }
 
@@ -30,7 +31,7 @@ export default function AddSampleModal({
   onClose,
   onSuccess,
   productTypes,
-  prefilledImage,
+  prefilledImages,
   defaultProductType,
 }: AddSampleModalProps) {
   const [step, setStep] = useState<UploadStep>('form')
@@ -45,22 +46,32 @@ export default function AddSampleModal({
   const [productType, setProductType] = useState('')
   const [notes, setNotes] = useState('')
   const [onedriveFolderUrl, setOnedriveFolderUrl] = useState('')
-  const [samplePhoto, setSamplePhoto] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [printTime, setPrintTime] = useState('')
   const [inkUsage, setInkUsage] = useState('')
-  const [galleryPhotos, setGalleryPhotos] = useState<File[]>([])
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
 
-  // Handle prefilled image from drag-and-drop
+  // Unified image pool
+  const [images, setImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [titleIndex, setTitleIndex] = useState(0)
+  const [previewIndex, setPreviewIndex] = useState(0)
+
+  // Helper toast state
+  const [showTitleHint, setShowTitleHint] = useState(false)
+
+  // Drag state
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  // Handle prefilled images from drag-and-drop
   useEffect(() => {
-    if (prefilledImage && isOpen) {
-      setSamplePhoto(prefilledImage)
-      const url = URL.createObjectURL(prefilledImage)
-      setImagePreview(url)
-      return () => URL.revokeObjectURL(url)
+    if (prefilledImages && prefilledImages.length > 0 && isOpen) {
+      const files = prefilledImages.slice(0, MAX_IMAGES)
+      setImages(files)
+      const urls = files.map(f => URL.createObjectURL(f))
+      setImagePreviews(urls)
+      setTitleIndex(0)
+      return () => urls.forEach(url => URL.revokeObjectURL(url))
     }
-  }, [prefilledImage, isOpen])
+  }, [prefilledImages, isOpen])
 
   // Reset form when modal closes
   useEffect(() => {
@@ -71,14 +82,15 @@ export default function AddSampleModal({
         setProductType('')
         setNotes('')
         setOnedriveFolderUrl('')
-        setSamplePhoto(null)
-        setImagePreview(null)
         setPrintTime('')
         setInkUsage('')
-        setGalleryPhotos([])
-        setGalleryPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
+        setImages([])
+        setImagePreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return [] })
+        setTitleIndex(0)
+        setPreviewIndex(0)
         setError(null)
         setUploadProgress({ step: '', progress: 0 })
+        setIsDragOver(false)
       }, 300)
     }
   }, [isOpen])
@@ -86,7 +98,6 @@ export default function AddSampleModal({
   // Set default product type when modal opens
   useEffect(() => {
     if (isOpen && productTypes.length > 0) {
-      // Use the provided default (current category) or fall back to first type
       if (defaultProductType && productTypes.some(pt => pt.id === defaultProductType)) {
         setProductType(defaultProductType)
       } else {
@@ -95,46 +106,90 @@ export default function AddSampleModal({
     }
   }, [isOpen, productTypes, defaultProductType])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSamplePhoto(file)
-      const url = URL.createObjectURL(file)
-      setImagePreview(url)
+  // Show hint briefly when multiple images exist or title changes
+  const prevImageCount = useRef(0)
+  useEffect(() => {
+    if (images.length >= 2 && prevImageCount.current < 2) {
+      setShowTitleHint(true)
+      const timer = setTimeout(() => setShowTitleHint(false), 3000)
+      return () => clearTimeout(timer)
     }
+    prevImageCount.current = images.length
+  }, [images.length])
+
+  useEffect(() => {
+    if (images.length >= 2) {
+      setShowTitleHint(true)
+      const timer = setTimeout(() => setShowTitleHint(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [titleIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addFiles = useCallback((files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'))
+    if (imageFiles.length === 0) return
+
+    setImages(prev => {
+      const remaining = MAX_IMAGES - prev.length
+      if (remaining <= 0) return prev
+      const toAdd = imageFiles.slice(0, remaining)
+      const urls = toAdd.map(f => URL.createObjectURL(f))
+      setImagePreviews(prevUrls => [...prevUrls, ...urls])
+      return [...prev, ...toAdd]
+    })
+  }, [])
+
+  const handleRemoveImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index])
+    setImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setTitleIndex(prev => {
+      if (index === prev) return 0
+      if (index < prev) return prev - 1
+      return prev
+    })
+    setPreviewIndex(prev => {
+      if (index === prev) return 0
+      if (index < prev) return prev - 1
+      return prev
+    })
   }
 
-  const handleRemoveImage = () => {
-    setSamplePhoto(null)
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
-      setImagePreview(null)
-    }
-  }
-
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    setGalleryPhotos(prev => [...prev, ...files])
-    const newPreviews = files.map(f => URL.createObjectURL(f))
-    setGalleryPreviews(prev => [...prev, ...newPreviews])
+    addFiles(files)
+    e.target.value = ''
   }
 
-  const handleRemoveGalleryImage = (index: number) => {
-    URL.revokeObjectURL(galleryPreviews[index])
-    setGalleryPhotos(prev => prev.filter((_, i) => i !== index))
-    setGalleryPreviews(prev => prev.filter((_, i) => i !== index))
-  }
+  // Drag handlers for the image panel
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    addFiles(files)
+  }, [addFiles])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name.trim() || !productType || !samplePhoto || !onedriveFolderUrl.trim()) {
-      setError('Please fill in all required fields')
+    if (!name.trim() || !productType || images.length === 0 || !onedriveFolderUrl.trim()) {
+      setError('Please fill in all required fields and add at least one image')
       return
     }
 
-    // Basic URL validation
     if (!onedriveFolderUrl.includes('onedrive') && !onedriveFolderUrl.includes('sharepoint')) {
       setError('Please enter a valid OneDrive or SharePoint link')
       return
@@ -144,35 +199,33 @@ export default function AddSampleModal({
     setError(null)
 
     try {
-      // Compress image before upload
-      setUploadProgress({ step: 'Compressing image...', progress: 20 })
-      const compressedPhoto = await compressImage(samplePhoto)
+      setUploadProgress({ step: 'Compressing images...', progress: 20 })
 
-      // Create FormData
+      const titleFile = images[titleIndex]
+      const galleryFiles = images.filter((_, i) => i !== titleIndex)
+
+      const compressedTitle = await compressImage(titleFile)
+
       const formData = new FormData()
       formData.append('name', name.trim())
       formData.append('productType', productType)
       formData.append('notes', notes.trim())
       formData.append('onedriveFolderUrl', onedriveFolderUrl.trim())
-      formData.append('samplePhoto', compressedPhoto)
+      formData.append('samplePhoto', compressedTitle)
       if (printTime) formData.append('printTimeMinutes', printTime)
       if (inkUsage) formData.append('inkUsageMl', inkUsage)
 
-      // Compress and append gallery images
-      for (const galleryFile of galleryPhotos) {
+      for (const galleryFile of galleryFiles) {
         const compressed = await compressImage(galleryFile)
         formData.append('galleryImages', compressed)
       }
 
-      setUploadProgress({ step: 'Uploading sample photo...', progress: 50 })
+      setUploadProgress({ step: 'Uploading...', progress: 50 })
 
-      // Get the auth token
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
-      if (!session) {
-        throw new Error('Not authenticated')
-      }
+      if (!session) throw new Error('Not authenticated')
 
       const response = await fetch('/api/samples', {
         method: 'POST',
@@ -200,39 +253,117 @@ export default function AddSampleModal({
     }
   }
 
+  const currentPreview = imagePreviews[previewIndex] || null
+  const isPreviewingTitle = previewIndex === titleIndex
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="" size="xl">
       {step === 'form' && (
         <div className="flex flex-col md:flex-row max-h-[85vh]">
           {/* Image Section */}
-          <div className="md:w-1/2 bg-gray-100 flex items-center justify-center p-6 min-h-[300px]">
-            {imagePreview ? (
-              <div className="relative">
+          <div
+            className={`md:w-1/2 bg-gray-100 flex flex-col items-center justify-center p-6 min-h-[300px] transition-colors ${
+              isDragOver ? 'bg-primary-50 ring-2 ring-inset ring-primary-300' : ''
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* Large preview */}
+            {currentPreview ? (
+              <div className="relative mb-4">
                 <img
-                  src={imagePreview}
+                  src={currentPreview}
                   alt="Preview"
-                  className="max-w-full max-h-[400px] object-contain rounded-lg shadow-sm"
+                  className="max-w-full max-h-[300px] object-contain rounded-lg shadow-sm"
                 />
+                {/* Star toggle on main image */}
                 <button
-                  onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                  type="button"
+                  onClick={() => setTitleIndex(previewIndex)}
+                  className={`absolute top-2 right-2 p-1.5 rounded-full transition-all shadow-md ${
+                    isPreviewingTitle
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-white/90 text-gray-400 hover:text-primary-500 hover:bg-white'
+                  }`}
+                  title={isPreviewingTitle ? 'This is the title image' : 'Set as title image'}
                 >
-                  <X className="w-4 h-4" />
+                  <Star className={`w-4 h-4 ${isPreviewingTitle ? 'fill-white' : ''}`} />
                 </button>
+                {/* Title badge helper — fades in/out */}
+                {images.length > 1 && (
+                  <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium shadow-sm transition-opacity duration-500 ${
+                    showTitleHint ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  } ${
+                    isPreviewingTitle
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-white/90 text-gray-500'
+                  }`}>
+                    {isPreviewingTitle ? '★ Title Image' : 'Click ★ to set as title'}
+                  </div>
+                )}
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-full min-h-[250px] border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-gray-50 transition-colors">
+              <div className="flex flex-col items-center justify-center w-full h-full min-h-[200px] mb-4">
                 <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                <span className="text-sm font-medium text-gray-600">Click to upload photo</span>
-                <span className="text-xs text-gray-400 mt-1">JPG, PNG, WebP</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
+                <span className="text-sm font-medium text-gray-600">
+                  {isDragOver ? 'Drop images here!' : 'Drag & drop images here'}
+                </span>
+                <span className="text-xs text-gray-400 mt-1">JPG, PNG, WebP (max {MAX_IMAGES})</span>
+              </div>
             )}
+
+            {/* Thumbnail strip */}
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {imagePreviews.map((preview, index) => (
+                <div
+                  key={index}
+                  className={`relative w-16 h-16 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                    index === previewIndex
+                      ? 'border-gray-800 ring-2 ring-gray-300'
+                      : 'border-transparent hover:border-gray-300'
+                  }`}
+                  onClick={() => setPreviewIndex(index)}
+                >
+                  <img
+                    src={preview}
+                    alt={`Image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Star badge for title */}
+                  {index === titleIndex && (
+                    <div className="absolute top-0.5 left-0.5 p-0.5 bg-primary-500 rounded-full">
+                      <Star className="w-2.5 h-2.5 text-white fill-white" />
+                    </div>
+                  )}
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRemoveImage(index) }}
+                    className="absolute top-0.5 right-0.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+              {/* Add button */}
+              {images.length < MAX_IMAGES && (
+                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-gray-50 transition-colors">
+                  <span className="text-gray-400 text-xl font-light">+</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileInput}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              {images.length}/{MAX_IMAGES} images
+              {images.length > 1 && ' · The ★ title image gets background processing'}
+            </p>
           </div>
 
           {/* Form Section */}
@@ -344,47 +475,6 @@ export default function AddSampleModal({
                 />
                 <p className="mt-1.5 text-xs text-gray-400">
                   Tip: Use #hashtags to organize and find samples easily
-                </p>
-              </div>
-
-              {/* Additional Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Images
-                </label>
-                {galleryPreviews.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {galleryPreviews.map((preview, index) => (
-                      <div key={index} className="relative w-16 h-16">
-                        <img
-                          src={preview}
-                          alt={`Gallery ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGalleryImage(index)}
-                          className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors text-sm text-gray-600">
-                  <Upload className="w-4 h-4" />
-                  Add more images
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleGalleryImagesChange}
-                    className="hidden"
-                  />
-                </label>
-                <p className="mt-1.5 text-xs text-gray-400">
-                  Optional angle shots or detail photos
                 </p>
               </div>
 

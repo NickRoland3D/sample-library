@@ -8,7 +8,7 @@ interface MasonryGridProps {
   samples: Sample[]
   productTypes: ProductType[]
   onSampleClick: (sample: Sample) => void
-  onDropImage: (file: File) => void
+  onDropImage: (files: File[]) => void
 }
 
 // Grid size configurations
@@ -50,10 +50,10 @@ export default function MasonryGrid({
     setIsDragOver(false)
 
     const files = Array.from(e.dataTransfer.files)
-    const imageFile = files.find(file => file.type.startsWith('image/'))
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
 
-    if (imageFile) {
-      onDropImage(imageFile)
+    if (imageFiles.length > 0) {
+      onDropImage(imageFiles)
     }
   }, [onDropImage])
 

@@ -33,7 +33,8 @@ export default function HomePage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showManageTypesModal, setShowManageTypesModal] = useState(false)
-  const [droppedImage, setDroppedImage] = useState<File | null>(null)
+  const [droppedImages, setDroppedImages] = useState<File[]>([])
+
 
   // Check auth
   useEffect(() => {
@@ -164,14 +165,14 @@ export default function HomePage() {
     setShowDetailModal(true)
   }
 
-  const handleDropImage = (file: File) => {
-    setDroppedImage(file)
+  const handleDropImage = (files: File[]) => {
+    setDroppedImages(files)
     setShowAddModal(true)
   }
 
   const handleAddModalClose = () => {
     setShowAddModal(false)
-    setDroppedImage(null)
+    setDroppedImages([])
   }
 
   const handleAddSuccess = async () => {
@@ -284,7 +285,7 @@ export default function HomePage() {
         onClose={handleAddModalClose}
         onSuccess={handleAddSuccess}
         productTypes={productTypes}
-        prefilledImage={droppedImage}
+        prefilledImages={droppedImages}
         defaultProductType={selectedType}
       />
 
